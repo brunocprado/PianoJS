@@ -1,11 +1,15 @@
 import { Injectable } from "@angular/core"
 
-enum EventoNota { Down = 144, Up = 128 }
-enum NoteSpeed { }
-
+enum NoteEvent { DOWN = 144, UP = 128 }
 const noteMap = [
     "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
 ]
+
+/*
+    ## Note On = 0x90 - off = 0x80 
+    [status, pitch, velocity]
+    https://www.cs.cmu.edu/~music/cmsip/readings/MIDI%20tutorial%20for%20programmers.html
+*/
 
 @Injectable({providedIn: 'root'})
 export class PianoService {
@@ -23,7 +27,26 @@ export class PianoService {
         return noteMap[noteNumber % 12] + octave;
     }
 
+    public getVelocity(n:any) : string {
+        const vel: { [v: number]: string } = { 
+            8: "pppp",
+            20: "ppp",
+            31: 'pp',
+            42: 'p',
+            53: 'mp',
+            64: 'mf',
+            80: 'f',
+            96: 'ff',
+            112: 'fff',
+            127: 'ffff'
+        }
+        for(var i in vel) {
+            if(n<=i) return vel[i];
+        }
+        return "?"
+    }
+
     public printNote(data: number[]) : string[] {
-        return [EventoNota[data[0]], this.getNote(data[1])]
+        return [NoteEvent[data[0]], this.getNote(data[1]), data[0] == NoteEvent.DOWN ? this.getVelocity(data[2]) : ""]
     }
 }
