@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core"
 
 enum NoteEvent { DOWN = 144, UP = 128 }
-const noteMap = [
+const noteMap: string[] = [
     "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
 ]
 
@@ -48,5 +48,23 @@ export class PianoService {
 
     public printNote(data: number[]) : string[] {
         return [NoteEvent[data[0]], this.getNote(data[1]), data[0] == NoteEvent.DOWN ? this.getVelocity(data[2]) : ""]
+    }
+
+    public generateKeys() : any[] {
+        var tmp = []
+        var curNote = 0;
+        var curOctave = 2;
+        for(var i = 0; i<=(this.max - this.min); i++){
+            if(curNote > noteMap.length - 1) {
+                curNote = 0
+                curOctave +=1
+            }
+            tmp.push({note: noteMap[curNote], octave: curOctave, type: (noteMap[curNote].includes("#")) ? 'black' : 'white'})
+            curNote++
+        }    
+
+        console.log(tmp)
+
+        return tmp
     }
 }

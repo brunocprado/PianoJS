@@ -1,5 +1,5 @@
 <div id="pianoContainer">
-    <div *ngFor="let pianoKey of pianoKeys" class="pianoKey">
-        {{pianoKey}}
+    <div *ngFor="let pianoKey of pianoKeys" [ngClass]="pianoKey.type">
+        {{pianoKey.note + pianoKey.octave}}
     </div>
 </div>
