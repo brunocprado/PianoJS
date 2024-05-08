@@ -1,0 +1,14 @@
+#pianoContainer {
+    display:flex;
+    flex-direction: row;
+}
+.pianoKey{
+    width: 50px;
+    height: 200px;
+    /* position: absolute;
+    top:0;
+    bottom:0; */
+    display: block;
+    border: solid 1px black;
+    background-color: white;
+}
