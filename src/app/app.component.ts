@@ -29,7 +29,7 @@ export class AppComponent implements OnInit {
     JZZ().or('Cannot start MIDI engine!!!').and('MIDI engine is running!!!');
     var input = JZZ().openMidiIn();
     var onReceiveNote = JZZ.Widget({ _receive: (msg: number[]) => { 
-      console.log(this.piano.printNote(msg))
+      this.piano.processNote(msg)
     }});
     input.connect(onReceiveNote);
   }

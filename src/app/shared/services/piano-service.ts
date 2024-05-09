@@ -1,4 +1,7 @@
-import { Injectable } from "@angular/core"
+import { Injectable, OnInit } from "@angular/core"
+// @ts-ignore  
+import { JZZ } from 'jzz'; 
+import { BehaviorSubject, Observable, Subject } from "rxjs";
 
 enum NoteEvent { DOWN = 144, UP = 128 }
 const noteMap: string[] = [
@@ -16,6 +19,15 @@ export class PianoService {
     minOctave : number = 2
     min : number = 36 //C2
     max : number = 96 //C7
+
+    // public _event$ = new BehaviorSubject<string[]>(['E2']); 
+    private _event$ : Subject<string[]> = new BehaviorSubject<string[]>([]); 
+
+    pressedKeys : string[] = []
+
+    public getEvent$(): Observable<string[]> {
+        return this._event$.asObservable();
+    }
 
     /*
         Transforma o int do pitch para uma nota só pra facilitar no debug
@@ -46,7 +58,16 @@ export class PianoService {
         return "?"
     }
 
-    public printNote(data: number[]) : string[] {
+    public processNote(data: number[]) {
+        console.log(this.printNote(data))
+        if(data[0] == NoteEvent.DOWN) 
+            this.pressedKeys.push(this.getNote(data[1]))
+        else
+            this.pressedKeys.splice(this.pressedKeys.indexOf(this.getNote(data[1])), 1)
+        this._event$.next(this.pressedKeys)
+    }
+
+    private printNote(data: number[]) : string[] {
         return [NoteEvent[data[0]], this.getNote(data[1]), data[0] == NoteEvent.DOWN ? this.getVelocity(data[2]) : ""]
     }
 
