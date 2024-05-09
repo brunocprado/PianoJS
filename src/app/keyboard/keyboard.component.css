@@ -36,7 +36,7 @@
     top:0;
     bottom:0; */
 }
-#pianoContainer div div.pressed{
+#pianoContainer div.pressed div {
     background-color: #888;
 
 }
