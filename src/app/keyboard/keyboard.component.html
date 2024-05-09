@@ -1,9 +1,6 @@
 
 <div id="pianoContainer">
     <div *ngFor="let pianoKey of pianoKeys" [ngClass]="[pianoKey.type, pressedKeys.includes(pianoKey.note + pianoKey.octave) ? 'pressed' : '' ]" >
-        <span>{{pianoKey.note + pianoKey.octave}}</span>
+        <div><span>{{pianoKey.note + pianoKey.octave}}</span></div>
     </div>
 </div>
-
-<!-- [class.pressed] = "pressedKeys.includes(pianoKey.note + pianoKey.octave)" -->
-<!-- [ngClass]="{'pressed': pressedKeys.includes(pianoKey.note + pianoKey.octave), 'second': true, 'third': false}" -->

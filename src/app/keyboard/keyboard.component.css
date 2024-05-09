@@ -6,34 +6,37 @@
 #pianoContainer div{
     width: 50px;
     height: 200px;
-    position: relative;
-    /* position: absolute;
-    top:0;
-    bottom:0; */
     border-right: solid 1px black;
     background-color: white;
-    vertical-align: bottom;
     box-sizing: border-box;
+    display: flex;
+    transition: .4s;
 }
-#pianoContainer div span{
-    position: absolute; 
-    bottom:0;
+#pianoContainer div div span{
+    align-self: flex-end;
     text-align: center;
+    width: 50px;
 }
 #pianoContainer div.black{
-    width: 50px;
+    margin-left:-20px;
+    margin-right:-30px;
+    position: relative;
+    padding: 0 10px;
+    background-color: transparent;
+    border: none;
+}
+#pianoContainer div.black div{
+    width: 30px;
     height: 100px;
     /* border: solid 1px black; */
     background-color: black;
     color: white;
-
+    font-size: 12px;
     /* position: absolute;
     top:0;
     bottom:0; */
-    margin-left:-20px;
-    margin-right:-30px;
 }
-#pianoContainer div.pressed{
-    background-color:red;
+#pianoContainer div div.pressed{
+    background-color: #888;
 
 }
