@@ -10,7 +10,6 @@ import { Observable } from 'rxjs';
 export class KeyboardComponent implements OnInit {
 
   pianoKeys : any[] = []
-  public pianoEvent$ = new Observable<string[]>();
   pressedKeys: string[] = []
 
   constructor(private piano: PianoService, private zone:NgZone) {}
