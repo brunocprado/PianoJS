@@ -1,6 +1,4 @@
 import { Injectable, OnInit } from "@angular/core"
-// @ts-ignore  
-import { JZZ } from 'jzz'; 
 import { BehaviorSubject, Observable, Subject } from "rxjs";
 
 enum NoteEvent { DOWN = 144, UP = 128 }
@@ -16,14 +14,25 @@ const noteMap: string[] = [
 
 @Injectable({providedIn: 'root'})
 export class PianoService {
+
     minOctave : number = 2
     min : number = 36 //C2
     max : number = 96 //C7
 
-    // public _event$ = new BehaviorSubject<string[]>(['E2']); 
+    private context!: AudioContext;
+    private buffers: any = {};
+
     private _event$ : Subject<string[]> = new BehaviorSubject<string[]>([]); 
 
     pressedKeys : string[] = []
+    
+    async loadSounds() {
+        this.context = new AudioContext();
+        for (let i=16;i<65;i++) {
+            let response = await fetch(`./assets/sounds/${i}.wav`);
+            this.buffers[i] = await this.context.decodeAudioData(await response.arrayBuffer());
+        }
+    }
 
     public getEvent$(): Observable<string[]> {
         return this._event$.asObservable();
@@ -60,10 +69,16 @@ export class PianoService {
 
     public processNote(data: number[]) {
         console.log(this.printNote(data))
-        if(data[0] == NoteEvent.DOWN) 
+        if(data[0] == NoteEvent.DOWN) {
             this.pressedKeys.push(this.getNote(data[1]))
-        else
+            let source = this.context.createBufferSource();
+            console.log(this.buffers)
+            source.buffer = this.buffers[data[1]];
+            source.connect(this.context.destination);
+            source.start();
+        } else {
             this.pressedKeys.splice(this.pressedKeys.indexOf(this.getNote(data[1])), 1)
+        }
         this._event$.next(this.pressedKeys)
     }
 
