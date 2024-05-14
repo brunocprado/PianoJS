@@ -6,6 +6,8 @@ const noteMap: string[] = [
     "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
 ]
 
+// let MidiParser = require('midi-parser-js');
+
 /*
     ## Note On = 0x90 - off = 0x80 
     [status, pitch, velocity]
@@ -20,7 +22,7 @@ export class PianoService {
     max : number = 96 //C7
 
     private context!: AudioContext;
-    private buffers: any = {};
+    private pianoSamples: any = {};
 
     private _event$ : Subject<string[]> = new BehaviorSubject<string[]>([]); 
 
@@ -30,7 +32,7 @@ export class PianoService {
         this.context = new AudioContext();
         for (let i=16;i<65;i++) {
             let response = await fetch(`./assets/sounds/${i}.wav`);
-            this.buffers[i] = await this.context.decodeAudioData(await response.arrayBuffer());
+            this.pianoSamples[i+12] = await this.context.decodeAudioData(await response.arrayBuffer());
         }
     }
 
@@ -72,8 +74,8 @@ export class PianoService {
         if(data[0] == NoteEvent.DOWN) {
             this.pressedKeys.push(this.getNote(data[1]))
             let source = this.context.createBufferSource();
-            console.log(this.buffers)
-            source.buffer = this.buffers[data[1]];
+            // console.log(this.pianoSamples)
+            source.buffer = this.pianoSamples[data[1]];
             source.connect(this.context.destination);
             source.start();
         } else {
@@ -98,9 +100,6 @@ export class PianoService {
             tmp.push({note: noteMap[curNote], octave: curOctave, type: (noteMap[curNote].includes("#")) ? 'black' : 'white'})
             curNote++
         }    
-
-        console.log(tmp)
-
         return tmp
     }
 }

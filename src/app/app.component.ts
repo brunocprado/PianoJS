@@ -3,9 +3,8 @@ import { PianoService } from './shared/services/piano-service';
 
 // @ts-ignore  
 import { JZZ } from 'jzz'; 
-// // @ts-ignore  
-// import { Gear } from 'jzz-midi-gear';
-// Gear(JZZ);
+
+import { Midi } from '@tonejs/midi'
 
 @Component({
   selector: 'app-root',
@@ -19,12 +18,37 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {
     JZZ().or('Cannot start MIDI engine!!!').and('MIDI engine is running!!!');
     var input = JZZ().openMidiIn();
-    var teste = 0;
     var onReceiveNote = JZZ.Widget({ _receive: (msg: number[]) => { 
-      if(teste++ == 0) this.piano.loadSounds()
       this.piano.processNote(msg)
     }});
     input.connect(onReceiveNote);
+  }
+
+  load() : void {
+    this.piano.loadSounds()
+  }
+
+  async loadMidi(ev : any) {
+    var r = new FileReader();
+    r.onload = async (e) => { 
+      // @ts-ignore  
+      const midi =  new Midi(r.result)
+
+      console.log("MIDI CARREGADO", midi)
+      
+      var notes = midi.tracks[0].notes
+
+      for(var i = 0; i<= notes.length; i++){
+        if(!notes[i] || !notes[i].time) continue;
+        if(notes[i].midi < 36) continue;
+        this.piano.processNote([0x90, notes[i].midi, notes[i].duration])
+        setTimeout(() => { 
+          this.piano.processNote([0x80, notes[i].midi, notes[i].duration]) 
+        }, notes[i].duration * 1000)
+        await new Promise(r => setTimeout(r, (notes[i+1].time - notes[i].time) * 1000));
+      }
+    }
+    r.readAsArrayBuffer(ev.target.files[0]);
   }
 
 }

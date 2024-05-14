@@ -1,4 +1,7 @@
-<div id="teste"></div>
+<input type="button" (click)="load()" value="Load piano samples">
+
+<br>
+<input type="file" id="arqMidi" (change)="loadMidi($event)">
 
 <app-keyboard id="piano"></app-keyboard>
 
