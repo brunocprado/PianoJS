@@ -42,7 +42,7 @@ export class AppComponent implements OnInit {
       console.log("MIDI CARREGADO", midi)
       this.midiNotes = midi.tracks[0].notes;
       this.piano.playMidi(midi.tracks[0].notes)
-      this.child.teste()
+      this.child.teste(this.midiNotes)
     }
     r.readAsArrayBuffer(ev.target.files[0]);
   }

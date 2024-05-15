@@ -1,4 +1,4 @@
-<div *ngFor="let note of notes" class="note" 
+<div *ngFor="let note of notes.slice(0, 40)" class="note" 
   [style.left]="posX[note.name] + 'px'" 
   [style.bottom]="((note.time*1000) - time)/4 + ((note.duration * 1000)/4) + 'px'" 
   [style.width]="note.name.includes('#') ? '50px' : '60px'">

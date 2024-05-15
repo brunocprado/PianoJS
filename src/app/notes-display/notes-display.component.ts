@@ -14,7 +14,7 @@ export class NotesDisplayComponent {
     "C#" : "darkred", 
     "D" : "yellow", 
     "D#" : "gold", 
-    "E" : "black", 
+    "E" : "#555", 
     "F" : "lightblue",
     "F#" : "blue", 
     "G" : "lightgreen", 
@@ -25,7 +25,7 @@ export class NotesDisplayComponent {
   }
 
   time: number = 0
-  @Input() notes : Note[] = []
+  notes : Note[] = []
 
   posX : { [v: string]: number } = {}
   
@@ -38,15 +38,24 @@ export class NotesDisplayComponent {
     return element.getBoundingClientRect().left
   }
 
-  teste(){
+  teste(notes : Note[]){
+    this.notes = notes;
     for (var i of this.piano.generateKeys()){
       var tmp = document.querySelector('#pianoContainer #' + i.note.replace("#", "b") + i.octave + '.containerKey')
       if(!tmp) continue
       this.posX[i.note + i.octave] = tmp.getBoundingClientRect().left
     }
     setInterval(() => {
-      if(this.piano.playing) this.time+=25; else stop; 
-    }, 25)
+      if(this.piano.playing) this.time+=20; else stop; 
+    }, 20)
+    //GARBAGE COLECTOR
+    setInterval(() => {
+      var tmp = []
+      for(let i of this.notes){
+        if(i.time * 1000 + 500 >= this.time) tmp.push(i)
+      }
+      this.notes = tmp
+    }, 400)
   }
 
 }

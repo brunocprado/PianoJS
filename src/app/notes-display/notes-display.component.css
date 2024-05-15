@@ -9,5 +9,6 @@
     border-radius: 10px;
     box-sizing: border-box;
     text-align: center;
-    border: solid 1px white;
+    border: solid 1px black;
+    color: black;
 }
