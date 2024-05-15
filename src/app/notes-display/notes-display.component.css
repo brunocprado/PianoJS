@@ -1,14 +1,13 @@
 .note {
     color: white;
-    width: 60px;
     position: absolute;
-    border: solid 1px white;
     box-sizing: border-box;
 }
 .note div{
-    background-color: black;
-    margin: 0 10px;
+    /* background-color: black; */
+    margin: 0 8px;
     border-radius: 10px;
     box-sizing: border-box;
     text-align: center;
+    border: solid 1px white;
 }

@@ -19,6 +19,7 @@ export class PianoService {
     minOctave : number = 2
     min : number = 36 //C2
     max : number = 96 //C7
+    playing : boolean = false;
 
     private context!: AudioContext;
     private pianoSamples: any = {};
@@ -72,10 +73,10 @@ export class PianoService {
         if(data[0] == NoteEvent.DOWN) console.log(this.printNote(data))
         if(data[0] == NoteEvent.DOWN) {
             this.pressedKeys.push(this.getNote(data[1]))
-            let source = this.context.createBufferSource();
-            source.buffer = this.pianoSamples[data[1]];
-            source.connect(this.context.destination);
-            source.start();
+            // let source = this.context.createBufferSource();
+            // source.buffer = this.pianoSamples[data[1]];
+            // source.connect(this.context.destination);
+            // source.start();
         } else {
             this.pressedKeys.splice(this.pressedKeys.indexOf(this.getNote(data[1])), 1)
         }
@@ -102,12 +103,15 @@ export class PianoService {
     }
 
     public async playMidi(notes : Note[]) {
+        this.playing = true;
         for(var i = 0; i<= notes.length; i++){
+            if(i == 0)
             if(!notes[i] || !notes[i].time) continue;
             if(notes[i].midi < 36) continue;
             this.processNote([0x90, notes[i].midi, notes[i].duration])
             setTimeout(() => { 
               this.processNote([0x80, notes[i].midi, notes[i].duration]) 
+              if(i == notes.length - 1) this.playing = false;
             }, notes[i].duration * 1000)
             await new Promise(r => setTimeout(r, (notes[i+1].time - notes[i].time) * 1000));
         }

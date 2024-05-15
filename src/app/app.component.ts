@@ -18,7 +18,6 @@ export class AppComponent implements OnInit {
   @ViewChild(NotesDisplayComponent) child!:NotesDisplayComponent;
   
   midiNotes : Note[] = []
-  time:number = 0
 
   constructor(private piano: PianoService) {}
 
@@ -42,12 +41,8 @@ export class AppComponent implements OnInit {
       const midi =  new Midi(r.result)
       console.log("MIDI CARREGADO", midi)
       this.midiNotes = midi.tracks[0].notes;
-      this.time = 0;
       this.piano.playMidi(midi.tracks[0].notes)
       this.child.teste()
-      setInterval(() => {
-        this.time+=20
-      }, 20)
     }
     r.readAsArrayBuffer(ev.target.files[0]);
   }

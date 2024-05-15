@@ -9,7 +9,22 @@ import { Note } from '@tonejs/midi/dist/Note';
 })
 export class NotesDisplayComponent {
 
-  @Input() time: number = 0
+  noteColors: { [v: string]: string } = {
+    "C" : "red", 
+    "C#" : "darkred", 
+    "D" : "yellow", 
+    "D#" : "gold", 
+    "E" : "black", 
+    "F" : "lightblue",
+    "F#" : "blue", 
+    "G" : "lightgreen", 
+    "G#" : "green",
+    "A" : "pink", 
+    "A#" : "purple", 
+    "B": "violet"
+  }
+
+  time: number = 0
   @Input() notes : Note[] = []
 
   posX : { [v: string]: number } = {}
@@ -25,15 +40,13 @@ export class NotesDisplayComponent {
 
   teste(){
     for (var i of this.piano.generateKeys()){
-      var tmp = document.querySelector('#pianoContainer #' + i.note.replace("#", "b") + i.octave + '.containerKey')//!.getBoundingClientRect().left
-      // console.log(i, '#pianoContainer #' + i.note.replace("#", "b") + i.octave + '.containerKey', tmp)
+      var tmp = document.querySelector('#pianoContainer #' + i.note.replace("#", "b") + i.octave + '.containerKey')
       if(!tmp) continue
       this.posX[i.note + i.octave] = tmp.getBoundingClientRect().left
     }
+    setInterval(() => {
+      if(this.piano.playing) this.time+=25; else stop; 
+    }, 25)
   }
 
-
-
 }
-
-// @ts-ignore  
