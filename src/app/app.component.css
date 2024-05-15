@@ -1,7 +1,25 @@
+body{
+    margin: 0;
+    padding: 0;
+}
+#debug {
+    z-index: 999;
+    position: absolute;
+    background-color: #ccc;
+    padding: 10px;
+    border-radius: 10px;
+}
 #piano {
     position: absolute;
     bottom:0;
     left:0;
     right: 0;
     height: 250px;
+}
+#display {
+    position: absolute;
+    top: 0;
+    bottom: 250px;
+    left: 0;
+    right: 0;
 }

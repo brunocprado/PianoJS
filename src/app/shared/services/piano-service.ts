@@ -1,12 +1,11 @@
 import { Injectable, OnInit } from "@angular/core"
+import { Note } from "@tonejs/midi/dist/Note";
 import { BehaviorSubject, Observable, Subject } from "rxjs";
 
 enum NoteEvent { DOWN = 144, UP = 128 }
 const noteMap: string[] = [
     "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
 ]
-
-// let MidiParser = require('midi-parser-js');
 
 /*
     ## Note On = 0x90 - off = 0x80 
@@ -69,12 +68,11 @@ export class PianoService {
         return "?"
     }
 
-    public processNote(data: number[]) {
-        console.log(this.printNote(data))
+    public processNote(data: number[]) : void {
+        if(data[0] == NoteEvent.DOWN) console.log(this.printNote(data))
         if(data[0] == NoteEvent.DOWN) {
             this.pressedKeys.push(this.getNote(data[1]))
             let source = this.context.createBufferSource();
-            // console.log(this.pianoSamples)
             source.buffer = this.pianoSamples[data[1]];
             source.connect(this.context.destination);
             source.start();
@@ -101,5 +99,17 @@ export class PianoService {
             curNote++
         }    
         return tmp
+    }
+
+    public async playMidi(notes : Note[]) {
+        for(var i = 0; i<= notes.length; i++){
+            if(!notes[i] || !notes[i].time) continue;
+            if(notes[i].midi < 36) continue;
+            this.processNote([0x90, notes[i].midi, notes[i].duration])
+            setTimeout(() => { 
+              this.processNote([0x80, notes[i].midi, notes[i].duration]) 
+            }, notes[i].duration * 1000)
+            await new Promise(r => setTimeout(r, (notes[i+1].time - notes[i].time) * 1000));
+        }
     }
 }

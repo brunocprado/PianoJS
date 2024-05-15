@@ -11,7 +11,7 @@
     background-color: transparent;
     box-sizing: border-box;
     display: flex;
-    transition: .4s;
+    transition: .2s;
     cursor: pointer;
 }
 #pianoContainer div.containerKey div span{

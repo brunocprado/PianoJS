@@ -1,7 +1,9 @@
-<input type="button" (click)="load()" value="Load piano samples">
+<div id="debug">
+    <input type="button" (click)="load()" value="Load piano samples">
+    <br>
+    <input type="file" id="arqMidi" (change)="loadMidi($event)">
+</div>
 
-<br>
-<input type="file" id="arqMidi" (change)="loadMidi($event)">
-
+<app-notes-display id="display" [notes]="midiNotes" [time]="time"></app-notes-display>
 <app-keyboard id="piano"></app-keyboard>
 

@@ -1,0 +1,6 @@
+<div *ngFor="let note of notes" class="note" [style.left]="posX[note.name] + 'px'" [style.bottom]="((note.time*1000) - time)/4 - ((note.duration * 1000)/4) + 'px'">
+  <div [style.height]="(note.duration * 1000)/4 + 'px'">
+    {{note.name}}
+  </div>
+</div>
+ 

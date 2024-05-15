@@ -5,16 +5,16 @@ import { CommonModule } from "@angular/common";
 import { PianoService } from "./shared/services/piano-service";
 import { NgModule } from "@angular/core";
 import { KeyboardComponent } from "./keyboard/keyboard.component";
+import { NotesDisplayComponent } from './notes-display/notes-display.component';
 
 @NgModule({
-    declarations: [
+    declarations: [	
       AppComponent,
-      KeyboardComponent
-    ],
+      KeyboardComponent,
+      NotesDisplayComponent
+   ],
     imports: [
       BrowserModule
-    //   FormsModule,
-    //   CommonModule
     ],
     providers: [
       PianoService

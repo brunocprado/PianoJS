@@ -1,5 +1,5 @@
 <div id="pianoContainer">
-    <div *ngFor="let pianoKey of pianoKeys" [ngClass]="['containerKey', pianoKey.type, pressedKeys.includes(pianoKey.note + pianoKey.octave) ? 'pressed' : '' ]" >
+    <div *ngFor="let pianoKey of pianoKeys" [id]="pianoKey.note.replace('#','b') + pianoKey.octave" [ngClass]="['containerKey', pianoKey.type, pressedKeys.includes(pianoKey.note + pianoKey.octave) ? 'pressed' : '' ]" (click)="play(pianoKey)">
         <div><span>{{pianoKey.note + pianoKey.octave}}</span></div>
     </div>
 </div>

@@ -1,10 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { PianoService } from './shared/services/piano-service';
 
 // @ts-ignore  
 import { JZZ } from 'jzz'; 
 
 import { Midi } from '@tonejs/midi'
+import { Note } from '@tonejs/midi/dist/Note';
+import { NotesDisplayComponent } from './notes-display/notes-display.component';
 
 @Component({
   selector: 'app-root',
@@ -12,7 +14,12 @@ import { Midi } from '@tonejs/midi'
   styleUrl: './app.component.css'
 })
 export class AppComponent implements OnInit {
+
+  @ViewChild(NotesDisplayComponent) child!:NotesDisplayComponent;
   
+  midiNotes : Note[] = []
+  time:number = 0
+
   constructor(private piano: PianoService) {}
 
   ngOnInit(): void {
@@ -33,20 +40,14 @@ export class AppComponent implements OnInit {
     r.onload = async (e) => { 
       // @ts-ignore  
       const midi =  new Midi(r.result)
-
       console.log("MIDI CARREGADO", midi)
-      
-      var notes = midi.tracks[0].notes
-
-      for(var i = 0; i<= notes.length; i++){
-        if(!notes[i] || !notes[i].time) continue;
-        if(notes[i].midi < 36) continue;
-        this.piano.processNote([0x90, notes[i].midi, notes[i].duration])
-        setTimeout(() => { 
-          this.piano.processNote([0x80, notes[i].midi, notes[i].duration]) 
-        }, notes[i].duration * 1000)
-        await new Promise(r => setTimeout(r, (notes[i+1].time - notes[i].time) * 1000));
-      }
+      this.midiNotes = midi.tracks[0].notes;
+      this.time = 0;
+      this.piano.playMidi(midi.tracks[0].notes)
+      this.child.teste()
+      setInterval(() => {
+        this.time+=20
+      }, 20)
     }
     r.readAsArrayBuffer(ev.target.files[0]);
   }
