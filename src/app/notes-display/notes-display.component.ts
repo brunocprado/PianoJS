@@ -2,8 +2,6 @@ import { Component } from '@angular/core';
 import { PianoService } from '../shared/services/piano-service';
 import { Note } from '@tonejs/midi/dist/Note';
 
-const FPS = 60;
-
 @Component({
   selector: 'app-notes-display',
   templateUrl: './notes-display.component.html',
@@ -47,13 +45,18 @@ export class NotesDisplayComponent {
       if(!tmp) continue
       this.posX[i.note + i.octave] = tmp.getBoundingClientRect().left
     }
-    setInterval(() => {
-      if(this.piano.playing) this.time+=1000/FPS; else stop; 
-    }, 1000/FPS)
     //GARBAGE COLECTOR
     setInterval(() => {
       this.notes = this.notes.filter(i => (i.time * 1000) + i.duration * 1000 + 500 >=  this.time);
-    }, 500)
+    }, 250)
+  }
+
+  getTime() : number {
+    return this.piano.curTime;
+  }
+
+  pause(){
+    this.piano.playing = !this.piano.playing;
   }
 
 }

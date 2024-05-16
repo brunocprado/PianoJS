@@ -7,6 +7,8 @@ const noteMap: string[] = [
     "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
 ]
 
+const WAIT_TIME = 1000/60;
+
 /*
     ## Note On = 0x90 - off = 0x80 
     [status, pitch, velocity]
@@ -15,6 +17,8 @@ const noteMap: string[] = [
 
 @Injectable({providedIn: 'root'})
 export class PianoService {
+
+    DEBUG : boolean = false;
 
     minOctave : number = 2
     min : number = 36 //C2
@@ -26,6 +30,7 @@ export class PianoService {
 
     private _event$ : Subject<string[]> = new BehaviorSubject<string[]>([]); 
 
+    curTime: number = 0
     pressedKeys : string[] = []
     
     async loadSounds() {
@@ -70,13 +75,13 @@ export class PianoService {
     }
 
     public processNote(data: number[]) : void {
-        if(data[0] == NoteEvent.DOWN) console.log(this.printNote(data))
+        if(data[0] == NoteEvent.DOWN && this.DEBUG) console.log(this.printNote(data))
         if(data[0] == NoteEvent.DOWN) {
             this.pressedKeys.push(this.getNote(data[1]))
-            // let source = this.context.createBufferSource();
-            // source.buffer = this.pianoSamples[data[1]];
-            // source.connect(this.context.destination);
-            // source.start();
+            let source = this.context.createBufferSource();
+            source.buffer = this.pianoSamples[data[1]];
+            source.connect(this.context.destination);
+            source.start();
         } else {
             this.pressedKeys.splice(this.pressedKeys.indexOf(this.getNote(data[1])), 1)
         }
@@ -103,17 +108,27 @@ export class PianoService {
     }
 
     public async playMidi(notes : Note[]) {
+        this.curTime = 0;
         this.playing = true;
+
         for(var i = 0; i<= notes.length; i++){
-            if(i == 0)
             if(!notes[i] || !notes[i].time) continue;
             if(notes[i].midi < 36) continue;
-            this.processNote([0x90, notes[i].midi, notes[i].duration])
-            setTimeout(() => { 
-              this.processNote([0x80, notes[i].midi, notes[i].duration]) 
-              if(i == notes.length - 1) this.playing = false;
-            }, notes[i].duration * 1000)
-            await new Promise(r => setTimeout(r, (notes[i+1].time - notes[i].time) * 1000));
+            while(!this.playing) {
+                await new Promise(r => setTimeout(r, 100));
+            }
+            while(this.curTime < notes[i].time * 1000){
+                await new Promise(r => setTimeout(r, WAIT_TIME));
+                this.curTime += WAIT_TIME
+            }   
+            await this.teste(notes[i])
         }
     }
+
+    private async teste(note: Note) {
+        this.processNote([0x90, note.midi, note.duration])
+            setTimeout(() => { 
+              this.processNote([0x80, note.midi, note.duration])
+            }, note.duration * 1000)  
+        }
 }
