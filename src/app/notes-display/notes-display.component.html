@@ -9,6 +9,6 @@
 </div>
 
 <label style="position: absolute; top: 180px; left: 10px;">TIME: {{getTime()/1000}}</label>
-<label style="position: absolute; top: 200px; left: 10px;">NEXT: {{notes[0]?.time}}</label>
+<label style="position: absolute; top: 200px; left: 10px;">NEXT: {{notes.length > 0 ? notes[0].time : ''}}</label>
 <input type="button" (click)="pause()" style="position: absolute; top: 220px; left: 10px;" value="Pause">
  

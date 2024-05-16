@@ -1,7 +1,7 @@
 body{
     margin: 0;
     padding: 0;
-    overflow: hidden;
+    overflow-y: hidden;
 }
 #debug {
     z-index: 999;
@@ -23,6 +23,6 @@ body{
     bottom: 250px;
     left: 0;
     right: 0;
-    background-color: #aaa;
+    background-color: #011222;
 }
 

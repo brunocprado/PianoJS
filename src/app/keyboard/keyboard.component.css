@@ -19,6 +19,7 @@
     text-align: center;
     width: 60px;
     padding-bottom: 5px;
+    font-family: Helvetica;
 }
 #pianoContainer div.containerKey.black{
     margin-left:-25px;

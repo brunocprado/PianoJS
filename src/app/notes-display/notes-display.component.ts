@@ -14,13 +14,13 @@ export class NotesDisplayComponent {
     "C#" : "darkred", 
     "D" : "yellow", 
     "D#" : "gold", 
-    "E" : "#555", 
+    "E" : "purple", 
     "F" : "lightblue",
     "F#" : "blue", 
     "G" : "lightgreen", 
     "G#" : "green",
     "A" : "pink", 
-    "A#" : "purple", 
+    "A#" : "crimson", 
     "B": "violet"
   }
 
@@ -47,7 +47,7 @@ export class NotesDisplayComponent {
     }
     //GARBAGE COLECTOR
     setInterval(() => {
-      this.notes = this.notes.filter(i => (i.time * 1000) + i.duration * 1000 + 500 >=  this.time);
+      this.notes = this.notes.filter(i => (i.time * 1000) + i.duration * 1000 + 500 >=  this.piano.curTime);
     }, 250)
   }
 

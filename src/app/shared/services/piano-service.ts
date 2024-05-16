@@ -121,14 +121,15 @@ export class PianoService {
                 await new Promise(r => setTimeout(r, WAIT_TIME));
                 this.curTime += WAIT_TIME
             }   
-            await this.teste(notes[i])
+            await this.playNoteFromMidi(notes[i])
+            if(i == notes.length - 1) this.playing = false;
         }
     }
 
-    private async teste(note: Note) {
+    private async playNoteFromMidi(note: Note) {
         this.processNote([0x90, note.midi, note.duration])
-            setTimeout(() => { 
-              this.processNote([0x80, note.midi, note.duration])
-            }, note.duration * 1000)  
-        }
+        setTimeout(() => { 
+            this.processNote([0x80, note.midi, note.duration])
+        }, note.duration * 1000)  
+    }
 }
