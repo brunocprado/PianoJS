@@ -1,6 +1,8 @@
-import { Component, Input, NgZone, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { PianoService } from '../shared/services/piano-service';
 import { Note } from '@tonejs/midi/dist/Note';
+
+const FPS = 60;
 
 @Component({
   selector: 'app-notes-display',
@@ -29,7 +31,7 @@ export class NotesDisplayComponent {
 
   posX : { [v: string]: number } = {}
   
-  constructor(private piano: PianoService, private zone:NgZone) { }
+  constructor(private piano: PianoService) { }
 
   getPosX(note : string) : number {
     if(note.includes("#")) return -50
@@ -46,16 +48,12 @@ export class NotesDisplayComponent {
       this.posX[i.note + i.octave] = tmp.getBoundingClientRect().left
     }
     setInterval(() => {
-      if(this.piano.playing) this.time+=20; else stop; 
-    }, 20)
+      if(this.piano.playing) this.time+=1000/FPS; else stop; 
+    }, 1000/FPS)
     //GARBAGE COLECTOR
     setInterval(() => {
-      var tmp = []
-      for(let i of this.notes){
-        if(i.time * 1000 + 500 >= this.time) tmp.push(i)
-      }
-      this.notes = tmp
-    }, 400)
+      this.notes = this.notes.filter(i => (i.time * 1000) + i.duration * 1000 + 500 >=  this.time);
+    }, 500)
   }
 
 }
