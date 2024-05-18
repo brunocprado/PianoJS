@@ -25,7 +25,6 @@ export class KeyboardComponent implements OnInit {
   }
 
   stop(key : number) : void {
-    console.log(key)
     this.piano.processNote([0x80, key, 1])
   }
   

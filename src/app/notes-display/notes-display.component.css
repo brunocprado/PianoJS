@@ -18,3 +18,10 @@
     text-align: center;
     width: 100%;
 }
+
+#control{
+    color:white;
+    position: absolute;
+    top: 6px;
+    left: 50%;
+}

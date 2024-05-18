@@ -127,9 +127,9 @@ export class PianoService {
     }
 
     private async playNoteFromMidi(note: Note) {
-        this.processNote([0x90, note.midi, note.duration])
-        setTimeout(() => { 
-            this.processNote([0x80, note.midi, note.duration])
+        this.processNote([NoteEvent.DOWN, note.midi, note.duration])
+        setTimeout(() => {
+            this.processNote([NoteEvent.UP, note.midi, 0])
         }, note.duration * 1000)  
     }
 }
