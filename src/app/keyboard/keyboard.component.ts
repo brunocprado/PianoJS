@@ -17,14 +17,16 @@ export class KeyboardComponent implements OnInit {
     this.pianoKeys = this.piano.generateKeys();
     this.piano.getEvent$().subscribe((keys: string[]) => {
       this.pressedKeys = keys;
-      this.zone.run(() => {
-        // console.log("UPDATE UI", this.pressedKeys);
-      });
    });
   }
 
-  play(key : any) : void {
-    //TODO
+  play(key : number) : void {
+    this.piano.processNote([0x90, key, 1])
+  }
+
+  stop(key : number) : void {
+    console.log(key)
+    this.piano.processNote([0x80, key, 1])
   }
   
 }

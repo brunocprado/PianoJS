@@ -27,6 +27,8 @@
     position: relative;
     padding: 0 10px;
     border: none !important;
+    height: 140px;
+    z-index: 2;
 }
 #pianoContainer div.containerKey.black div{
     width: 30px;

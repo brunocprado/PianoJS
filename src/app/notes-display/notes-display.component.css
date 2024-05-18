@@ -7,7 +7,6 @@
     margin: 0 8px;
     border-radius: 10px;
     box-sizing: border-box;
-    text-align: center;
     /* border: solid 1px black; */
     box-shadow: 0 0 10px #000;
     color: black;
@@ -16,5 +15,6 @@
     align-items: center;
 }
 .note div span {
+    text-align: center;
     width: 100%;
 }

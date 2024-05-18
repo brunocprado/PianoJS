@@ -4,7 +4,7 @@
   [style.width]="note.name.includes('#') ? '50px' : '60px'">
 
   <div [style.height]="(note.duration * 1000)/4 + 'px'" [style.background-color]="noteColors[note.name.slice(0, note.name.length - 1)]"> 
-    {{note.name}}
+    <span>{{note.name}}</span>
   </div>
 </div>
 

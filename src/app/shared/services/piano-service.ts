@@ -101,7 +101,7 @@ export class PianoService {
                 curNote = 0
                 curOctave +=1
             }
-            tmp.push({note: noteMap[curNote], octave: curOctave, type: (noteMap[curNote].includes("#")) ? 'black' : 'white'})
+            tmp.push({id:this.min + i, note: noteMap[curNote], octave: curOctave, type: (noteMap[curNote].includes("#")) ? 'black' : 'white'})
             curNote++
         }    
         return tmp
