@@ -32,13 +32,23 @@ export class PianoService {
 
     curTime: number = 0
     pressedKeys : string[] = []
-    
+    activeSounds: any[] = []
+    oscillators: any = {}
+
+    useSamples: boolean = true;
+
     async loadSounds() {
         this.context = new AudioContext();
-        for (let i=16;i<65;i++) {
-            let response = await fetch(`./assets/sounds/${i}.wav`);
-            this.pianoSamples[i+12] = await this.context.decodeAudioData(await response.arrayBuffer());
+        if(this.useSamples) {
+            for (let i=16;i<65;i++) {
+                let response = await fetch(`./assets/sounds/${i}.wav`);
+                this.pianoSamples[i+12] = await this.context.decodeAudioData(await response.arrayBuffer());
+            }
         }
+    }
+    
+    private midiToFrequency( note : number) : number{
+        return 440 * Math.pow(2, (note - 69) / 12);
     }
 
     public getEvent$(): Observable<string[]> {
@@ -75,15 +85,88 @@ export class PianoService {
     }
 
     public processNote(data: number[]) : void {
+        if(!this.useSamples) {
+            this.processNoteOscillator(data);
+            return;
+        }
         if(data[0] == NoteEvent.DOWN && this.DEBUG) console.log(this.printNote(data))
         if(data[0] == NoteEvent.DOWN) {
             this.pressedKeys.push(this.getNote(data[1]))
             let source = this.context.createBufferSource();
+            console.log(this.pianoSamples[data[1]].duration)
+            source.loopStart = 0.15; // Definir o início do loop (ajuste conforme necessário)
+            source.loopEnd = this.pianoSamples[data[1]].duration - 1; // Definir o final do loop (ajuste conforme necessário)
             source.buffer = this.pianoSamples[data[1]];
+            // source.loop = true;
             source.connect(this.context.destination);
             source.start();
+            this.activeSounds[data[1]] = source;
         } else {
             this.pressedKeys.splice(this.pressedKeys.indexOf(this.getNote(data[1])), 1)
+            // this.activeSounds[data[1]].stop();
+            // delete this.activeSounds[data[1]]
+        }
+        this._event$.next(this.pressedKeys)
+    }
+
+    public processNoteOscillator(data: number[]) : void {
+        if(data[0] == NoteEvent.DOWN && this.DEBUG) console.log(this.printNote(data))
+        if(data[0] == NoteEvent.DOWN) {
+            this.pressedKeys.push(this.getNote(data[1]))
+            // Criar osciladores
+            let frequency = this.midiToFrequency(data[1])
+            const oscillator1 = this.context.createOscillator();
+            const oscillator2 = this.context.createOscillator();
+            
+            oscillator1.type = 'sine'; // Primeira onda (sine)
+            oscillator2.type = 'triangle'; // Segunda onda (triangle)
+            
+            oscillator1.frequency.setValueAtTime(frequency, this.context.currentTime);
+            oscillator2.frequency.setValueAtTime(frequency, this.context.currentTime);
+            
+            // Criar ganho
+            const gainNode = this.context.createGain();
+            
+            // Aplicar ADSR envelope
+            const attackTime = 0.1;
+            const decayTime = 0.2;
+            const sustainLevel = 0.7;
+            
+            gainNode.gain.setValueAtTime(0, this.context.currentTime);
+            gainNode.gain.linearRampToValueAtTime(1, this.context.currentTime + attackTime); // Attack
+            gainNode.gain.linearRampToValueAtTime(sustainLevel, this.context.currentTime + attackTime + decayTime); // Decay
+            
+            // Criar filtro
+            const filter = this.context.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(1500, this.context.currentTime);
+            
+            // Conectar nodes
+            oscillator1.connect(filter);
+            oscillator2.connect(filter);
+            filter.connect(gainNode);
+            gainNode.connect(this.context.destination);
+            
+            // Iniciar osciladores
+            oscillator1.start();
+            oscillator2.start();
+            
+            // Guardar osciladores e nodes para parar depois
+            this.oscillators[data[1]] = { oscillator1, oscillator2, gainNode, filter };
+        } else {
+            this.pressedKeys.splice(this.pressedKeys.indexOf(this.getNote(data[1])), 1)
+            
+            const { oscillator1, oscillator2, gainNode } = this.oscillators[data[1]];
+        
+            const releaseTime = 0.3;
+            gainNode.gain.cancelScheduledValues(this.context.currentTime);
+            gainNode.gain.setValueAtTime(gainNode.gain.value, this.context.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0, this.context.currentTime + releaseTime); // Release
+            
+            oscillator1.stop(this.context.currentTime + releaseTime);
+            oscillator2.stop(this.context.currentTime + releaseTime);
+
+            delete this.oscillators[data[1]]; // Remover do objeto de osciladores ativos
         }
         this._event$.next(this.pressedKeys)
     }
