@@ -6,12 +6,14 @@ import { PianoService } from "./shared/services/piano-service";
 import { NgModule } from "@angular/core";
 import { KeyboardComponent } from "./keyboard/keyboard.component";
 import { NotesDisplayComponent } from './notes-display/notes-display.component';
+import { SettingsComponent } from './settings/settings.component';
 
 @NgModule({
-    declarations: [	
+    declarations: [		
       AppComponent,
       KeyboardComponent,
-      NotesDisplayComponent
+      NotesDisplayComponent,
+      SettingsComponent
    ],
     imports: [
       BrowserModule

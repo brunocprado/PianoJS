@@ -1,6 +1,7 @@
 import { Injectable, OnInit } from "@angular/core"
 import { Note } from "@tonejs/midi/dist/Note";
 import { BehaviorSubject, Observable, Subject } from "rxjs";
+import { Settings } from "../models/settings";
 
 enum NoteEvent { DOWN = 144, UP = 128 }
 const noteMap: string[] = [
@@ -20,6 +21,8 @@ export class PianoService {
 
     DEBUG : boolean = false;
 
+    public settings : Settings = new Settings(36, 96); //C2, C7
+ 
     minOctave : number = 2
     min : number = 36 //C2
     max : number = 96 //C7
@@ -37,12 +40,21 @@ export class PianoService {
 
     useSamples: boolean = true;
 
+    midiToNoteName(midiNote :number) {
+        const notes = ["C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs", "A", "As", "B"];
+        const octave = Math.floor(midiNote / 12) - 1;
+        const note = notes[midiNote % 12];
+        return `${note}${octave}`;
+    };
+
     async loadSounds() {
         this.context = new AudioContext();
         if(this.useSamples) {
-            for (let i=16;i<65;i++) {
-                let response = await fetch(`./assets/sounds/${i}.wav`);
-                this.pianoSamples[i+12] = await this.context.decodeAudioData(await response.arrayBuffer());
+            for (let i=this.min;i<=this.max;i++) { //https://freesound.org/people/jobro/
+                let response = await fetch(`/assets/sounds/med_${this.midiToNoteName(i).toLowerCase()}.wav`); 
+                // let response = await fetch(`/assets/sounds/148432__neatonk__piano_loud_c4.wav`); 
+
+                this.pianoSamples[i] = await this.context.decodeAudioData(await response.arrayBuffer());
             }
         }
     }
@@ -85,7 +97,7 @@ export class PianoService {
     }
 
     public processNote(data: number[]) : void {
-        if(!this.useSamples) {
+        if(!this.useSamples || !this.pianoSamples[data[1]]) {
             this.processNoteOscillator(data);
             return;
         }
@@ -93,9 +105,8 @@ export class PianoService {
         if(data[0] == NoteEvent.DOWN) {
             this.pressedKeys.push(this.getNote(data[1]))
             let source = this.context.createBufferSource();
-            console.log(this.pianoSamples[data[1]].duration)
-            source.loopStart = 0.15; // Definir o início do loop (ajuste conforme necessário)
-            source.loopEnd = this.pianoSamples[data[1]].duration - 1; // Definir o final do loop (ajuste conforme necessário)
+            source.loopStart = 0.05; // Definir o início do loop (ajuste conforme necessário)
+            source.loopEnd = 0.15//this.pianoSamples[data[1]].duration - ; // Definir o final do loop (ajuste conforme necessário)
             source.buffer = this.pianoSamples[data[1]];
             // source.loop = true;
             source.connect(this.context.destination);
@@ -103,8 +114,8 @@ export class PianoService {
             this.activeSounds[data[1]] = source;
         } else {
             this.pressedKeys.splice(this.pressedKeys.indexOf(this.getNote(data[1])), 1)
-            // this.activeSounds[data[1]].stop();
-            // delete this.activeSounds[data[1]]
+            this.activeSounds[data[1]].stop();
+            delete this.activeSounds[data[1]]
         }
         this._event$.next(this.pressedKeys)
     }
