@@ -9,12 +9,12 @@ import { Settings } from '../shared/models/settings';
 })
 export class SettingsComponent {
 
-  settings : Settings = new Settings(this.piano.min, this.piano.max);
+  settings !: Settings;
 
   constructor(private piano : PianoService) { }
 
   loadSettings() : void {
-    this.settings = new Settings(this.piano.min, this.piano.max) //mover o resto dos param do service pra class
+    this.settings = this.piano.settings //mover o resto dos param do service pra class
   }
 
   saveSettings() : void {

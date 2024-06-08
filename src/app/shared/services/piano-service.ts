@@ -24,8 +24,6 @@ export class PianoService {
     public settings : Settings = new Settings(36, 96); //C2, C7
  
     minOctave : number = 2
-    min : number = 36 //C2
-    max : number = 96 //C7
     playing : boolean = false;
 
     private context!: AudioContext;
@@ -38,8 +36,6 @@ export class PianoService {
     activeSounds: any[] = []
     oscillators: any = {}
 
-    useSamples: boolean = true;
-
     midiToNoteName(midiNote :number) {
         const notes = ["C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs", "A", "As", "B"];
         const octave = Math.floor(midiNote / 12) - 1;
@@ -49,8 +45,8 @@ export class PianoService {
 
     async loadSounds() {
         this.context = new AudioContext();
-        if(this.useSamples) {
-            for (let i=this.min;i<=this.max;i++) { //https://freesound.org/people/jobro/
+        if(this.settings.useSamples) {
+            for (let i=this.settings.minNote;i<=this.settings.maxNote;i++) { //https://freesound.org/people/jobro/
                 let response = await fetch(`/assets/sounds/med_${this.midiToNoteName(i).toLowerCase()}.wav`); 
                 // let response = await fetch(`/assets/sounds/148432__neatonk__piano_loud_c4.wav`); 
 
@@ -71,7 +67,7 @@ export class PianoService {
         Transforma o int do pitch para uma nota só pra facilitar no debug
     */
     public getNote(n:number) : string {
-        let noteNumber = n - this.min;
+        let noteNumber = n - this.settings.minNote;
         let octave = Math.floor(noteNumber/12) + this.minOctave;
 
         return noteMap[noteNumber % 12] + octave;
@@ -97,7 +93,7 @@ export class PianoService {
     }
 
     public processNote(data: number[]) : void {
-        if(!this.useSamples || !this.pianoSamples[data[1]]) {
+        if(!this.settings.useSamples || !this.pianoSamples[data[1]]) {
             this.processNoteOscillator(data);
             return;
         }
@@ -190,12 +186,12 @@ export class PianoService {
         var tmp = []
         var curNote = 0;
         var curOctave = 2;
-        for(var i = 0; i<=(this.max - this.min); i++){
+        for(var i = 0; i<=(this.settings.maxNote - this.settings.minNote); i++){
             if(curNote > noteMap.length - 1) {
                 curNote = 0
                 curOctave +=1
             }
-            tmp.push({id:this.min + i, note: noteMap[curNote], octave: curOctave, type: (noteMap[curNote].includes("#")) ? 'black' : 'white'})
+            tmp.push({id:this.settings.minNote + i, note: noteMap[curNote], octave: curOctave, type: (noteMap[curNote].includes("#")) ? 'black' : 'white'})
             curNote++
         }    
         return tmp

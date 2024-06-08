@@ -1,4 +1,6 @@
-<input type="text" [value]="settings.minNote">
-<input type="text" [value]="settings.maxNote">
+<ng-container *ngIf="settings">
+    <input type="text" [value]="settings.minNote">
+    <input type="text" [value]="settings.maxNote">
+</ng-container>
 
 <input type="button" value="Save" (click)="saveSettings()">
