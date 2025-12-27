@@ -33,8 +33,30 @@ export class PianoService {
 
     curTime: number = 0
     pressedKeys : string[] = []
-    activeSounds: any[] = []
-    oscillators: any = {}
+    // Suporta múltiplas "vozes" por tecla (MIDI pode ter overlap/repetição na mesma nota)
+    private keyCounts: Record<number, number> = {}
+    activeSounds: Record<number, AudioBufferSourceNode[]> = {}
+    oscillators: Record<number, Array<{ oscillator1: OscillatorNode, oscillator2: OscillatorNode, gainNode: GainNode, filter: BiquadFilterNode }>> = {}
+
+    private incKey(midi: number) {
+        const next = (this.keyCounts[midi] ?? 0) + 1;
+        this.keyCounts[midi] = next;
+        if (next === 1) {
+            this.pressedKeys.push(this.getNote(midi));
+        }
+    }
+
+    private decKey(midi: number) {
+        const cur = this.keyCounts[midi] ?? 0;
+        if (cur <= 1) {
+            delete this.keyCounts[midi];
+            const name = this.getNote(midi);
+            const idx = this.pressedKeys.indexOf(name);
+            if (idx >= 0) this.pressedKeys.splice(idx, 1);
+        } else {
+            this.keyCounts[midi] = cur - 1;
+        }
+    }
 
     midiToNoteName(midiNote :number) {
         const notes = ["C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs", "A", "As", "B"];
@@ -99,7 +121,7 @@ export class PianoService {
         }
         if(data[0] == NoteEvent.DOWN && this.DEBUG) console.log(this.printNote(data))
         if(data[0] == NoteEvent.DOWN) {
-            this.pressedKeys.push(this.getNote(data[1]))
+            this.incKey(data[1])
             let source = this.context.createBufferSource();
             source.loopStart = 0.05; // Definir o início do loop (ajuste conforme necessário)
             source.loopEnd = 0.15//this.pianoSamples[data[1]].duration - ; // Definir o final do loop (ajuste conforme necessário)
@@ -107,11 +129,18 @@ export class PianoService {
             // source.loop = true;
             source.connect(this.context.destination);
             source.start();
-            this.activeSounds[data[1]] = source;
+            (this.activeSounds[data[1]] ??= []).push(source);
         } else {
-            this.pressedKeys.splice(this.pressedKeys.indexOf(this.getNote(data[1])), 1)
-            this.activeSounds[data[1]].stop();
-            delete this.activeSounds[data[1]]
+            // UP pode chegar duplicado ou fora de ordem em MIDI -> blinda
+            const stack = this.activeSounds[data[1]];
+            const source = stack?.pop();
+            if (source) {
+                try { source.stop(); } catch {}
+            }
+            if (stack && stack.length === 0) {
+                delete this.activeSounds[data[1]];
+            }
+            this.decKey(data[1])
         }
         this._event$.next(this.pressedKeys)
     }
@@ -119,7 +148,7 @@ export class PianoService {
     public processNoteOscillator(data: number[]) : void {
         if(data[0] == NoteEvent.DOWN && this.DEBUG) console.log(this.printNote(data))
         if(data[0] == NoteEvent.DOWN) {
-            this.pressedKeys.push(this.getNote(data[1]))
+            this.incKey(data[1])
             // Criar osciladores
             let frequency = this.midiToFrequency(data[1])
             const oscillator1 = this.context.createOscillator();
@@ -159,11 +188,17 @@ export class PianoService {
             oscillator2.start();
             
             // Guardar osciladores e nodes para parar depois
-            this.oscillators[data[1]] = { oscillator1, oscillator2, gainNode, filter };
+            (this.oscillators[data[1]] ??= []).push({ oscillator1, oscillator2, gainNode, filter });
         } else {
-            this.pressedKeys.splice(this.pressedKeys.indexOf(this.getNote(data[1])), 1)
-            
-            const { oscillator1, oscillator2, gainNode } = this.oscillators[data[1]];
+            const stack = this.oscillators[data[1]];
+            const voice = stack?.pop();
+            if (!voice) {
+                // UP duplicado/out-of-order
+                this.decKey(data[1])
+                this._event$.next(this.pressedKeys)
+                return;
+            }
+            const { oscillator1, oscillator2, gainNode } = voice;
         
             const releaseTime = 0.3;
             gainNode.gain.cancelScheduledValues(this.context.currentTime);
@@ -173,7 +208,10 @@ export class PianoService {
             oscillator1.stop(this.context.currentTime + releaseTime);
             oscillator2.stop(this.context.currentTime + releaseTime);
 
-            delete this.oscillators[data[1]]; // Remover do objeto de osciladores ativos
+            if (stack && stack.length === 0) {
+                delete this.oscillators[data[1]]; // Remover do objeto de osciladores ativos
+            }
+            this.decKey(data[1])
         }
         this._event$.next(this.pressedKeys)
     }
@@ -217,7 +255,9 @@ export class PianoService {
     }
 
     private async playNoteFromMidi(note: Note) {
-        this.processNote([NoteEvent.DOWN, note.midi, note.duration])
+        // 3o byte do MIDI é velocity (0-127); duração NÃO é velocity.
+        const vel = Math.max(1, Math.min(127, Math.round((note.velocity ?? 0.8) * 127)));
+        this.processNote([NoteEvent.DOWN, note.midi, vel])
         setTimeout(() => {
             this.processNote([NoteEvent.UP, note.midi, 0])
         }, note.duration * 1000)  

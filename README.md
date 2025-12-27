@@ -12,3 +12,8 @@ npm install
 npm start
 ```
 
+## TODO
+Incluir component de configurações para definir tipo de samples de notas, número de oitavas...
+Suporte a pedal de sustain
+Lyrics
+Gravação de sessão em .midi
