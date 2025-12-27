@@ -1,1 +1,120 @@
-/* You can add global styles to this file, and also import other style files */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tokens globais + overrides (Tailwind-friendly) */
+@layer base{
+  :root{
+    color-scheme: dark;
+
+    --bg0: #070A12;
+    --bg1: #0A1020;
+    --panel: rgba(255,255,255,.06);
+    --panel-2: rgba(255,255,255,.09);
+    --border: rgba(255,255,255,.10);
+    --text: rgba(255,255,255,.92);
+    --muted: rgba(255,255,255,.65);
+    --shadow: 0 18px 60px rgba(0,0,0,.55);
+
+    --radius: 14px;
+    --radius-sm: 10px;
+
+    --focus: 0 0 0 3px rgba(120, 180, 255, .22);
+  }
+
+  html, body{
+    height: 100%;
+  }
+
+  body{
+    overflow: hidden;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+    background:
+      radial-gradient(1000px 600px at 20% 10%, rgba(70, 120, 255, .18), transparent 60%),
+      radial-gradient(800px 500px at 80% 0%, rgba(255, 70, 180, .12), transparent 55%),
+      linear-gradient(180deg, var(--bg1), var(--bg0));
+    color: var(--text);
+  }
+
+  app-root{
+    display: block;
+    height: 100%;
+    min-height: 0;
+  }
+}
+
+@layer components{
+  .ui-btn{
+    appearance: none;
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+    color: var(--text);
+    border-radius: 12px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: transform .12s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+  }
+  .ui-btn:hover{
+    border-color: rgba(255,255,255,.18);
+    background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.08));
+  }
+  .ui-btn:active{
+    transform: translateY(1px);
+  }
+  .ui-btn:focus-visible{
+    outline: none;
+    box-shadow: var(--focus);
+  }
+
+  .ui-btn-sm{
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+
+  .ui-field{
+    border: 1px solid var(--border);
+    background: rgba(0,0,0,.25);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .ui-field:focus{
+    outline: none;
+    box-shadow: var(--focus);
+    border-color: rgba(120, 180, 255, .35);
+  }
+
+  .ui-field-sm{
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+
+  input[type="file"].ui-file{
+    padding: 8px 10px;
+  }
+  input[type="file"].ui-file.ui-field-sm{
+    padding: 6px 8px;
+  }
+  input[type="file"].ui-file::file-selector-button{
+    appearance: none;
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+    color: var(--text);
+    border-radius: 10px;
+    padding: 8px 10px;
+    margin-right: 10px;
+    cursor: pointer;
+  }
+  input[type="file"].ui-file.ui-field-sm::file-selector-button{
+    padding: 6px 8px;
+    border-radius: 9px;
+    margin-right: 8px;
+    font-size: 14px;
+  }
+  input[type="file"].ui-file::file-selector-button:hover{
+    border-color: rgba(255,255,255,.18);
+    background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.08));
+  }
+}

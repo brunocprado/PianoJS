@@ -1,16 +1,22 @@
-@for (note of notes.slice(0, 40); track note) {
-  <div class="note"
-    [style.left]="posX[note.name] + 'px'"
-    [style.bottom]="((note.time*1000) - getTime())/2  + 'px'"
-    [style.width]="note.name.includes('#') ? '50px' : '60px'">
-    <div [style.height]="(note.duration * 1000)/2 + 'px'" [style.background-color]="noteColors[note.name.slice(0, note.name.length - 1)]">
-      <span>{{note.name}}</span>
+<div class="display-root" #root>
+  @for (note of notes.slice(0, 40); track note) {
+    <div class="note"
+      [style.left.px]="getLeft(note.name)"
+      [style.bottom.px]="((note.time*1000) - getTime())/2"
+      [style.width.px]="getKeyWidth(note.name)">
+      <div class="note__body"
+        [style.--note-color]="getNoteColor(note.name)"
+        [style.height.px]="(note.duration * 1000)/2">
+        <span>{{note.name}}</span>
+      </div>
     </div>
-  </div>
-}
+  }
 
-<div id="control">
-  <label>TIME: {{(getTime()/1000).toFixed(2)}}</label>
-  <label>NEXT: {{notes.length > 0 ? notes[0].time.toFixed(2) : ''}}</label>
-  <input type="button" (click)="pause()"  value="Pause">
+  <div class="control">
+    <div class="control__stats">
+      <span>TIME: {{(getTime()/1000).toFixed(2)}}</span>
+      <!-- <span>NEXT: {{notes.length > 0 ? notes[0].time.toFixed(2) : ''}}</span> -->
+    </div>
+    <button class="ui-btn" type="button" (click)="pause()">Pause</button>
+  </div>
 </div>
