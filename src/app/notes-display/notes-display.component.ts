@@ -3,9 +3,10 @@ import { PianoService } from '../shared/services/piano-service';
 import { Note } from '@tonejs/midi/dist/Note';
 
 @Component({
-  selector: 'app-notes-display',
-  templateUrl: './notes-display.component.html',
-  styleUrls: ['./notes-display.component.css']
+    selector: 'app-notes-display',
+    templateUrl: './notes-display.component.html',
+    styleUrls: ['./notes-display.component.css'],
+    standalone: false
 })
 export class NotesDisplayComponent {
 

@@ -9,9 +9,10 @@ import { Note } from '@tonejs/midi/dist/Note';
 import { NotesDisplayComponent } from './notes-display/notes-display.component';
 
 @Component({
-  selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+    selector: 'app-root',
+    templateUrl: './app.component.html',
+    styleUrl: './app.component.css',
+    standalone: false
 })
 export class AppComponent implements OnInit {
 

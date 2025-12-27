@@ -2,9 +2,10 @@ import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { PianoService } from '../shared/services/piano-service';
 
 @Component({
-  selector: 'app-keyboard',
-  templateUrl: './keyboard.component.html',
-  styleUrl: './keyboard.component.css'
+    selector: 'app-keyboard',
+    templateUrl: './keyboard.component.html',
+    styleUrl: './keyboard.component.css',
+    standalone: false
 })
 export class KeyboardComponent implements OnInit {
 
