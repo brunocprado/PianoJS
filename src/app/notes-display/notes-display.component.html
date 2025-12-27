@@ -1,12 +1,13 @@
-<div *ngFor="let note of notes.slice(0, 40)" class="note" 
-  [style.left]="posX[note.name] + 'px'" 
-  [style.bottom]="((note.time*1000) - getTime())/2  + 'px'" 
-  [style.width]="note.name.includes('#') ? '50px' : '60px'">
-
-  <div [style.height]="(note.duration * 1000)/2 + 'px'" [style.background-color]="noteColors[note.name.slice(0, note.name.length - 1)]"> 
-    <span>{{note.name}}</span>
+@for (note of notes.slice(0, 40); track note) {
+  <div class="note"
+    [style.left]="posX[note.name] + 'px'"
+    [style.bottom]="((note.time*1000) - getTime())/2  + 'px'"
+    [style.width]="note.name.includes('#') ? '50px' : '60px'">
+    <div [style.height]="(note.duration * 1000)/2 + 'px'" [style.background-color]="noteColors[note.name.slice(0, note.name.length - 1)]">
+      <span>{{note.name}}</span>
+    </div>
   </div>
-</div>
+}
 
 <div id="control">
   <label>TIME: {{(getTime()/1000).toFixed(2)}}</label>
