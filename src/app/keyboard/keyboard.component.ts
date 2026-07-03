@@ -1,24 +1,21 @@
-import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
+import { NgClass } from '@angular/common';
 import { PianoService } from '../shared/services/piano-service';
 
 @Component({
     selector: 'app-keyboard',
     templateUrl: './keyboard.component.html',
     styleUrl: './keyboard.component.css',
-    standalone: false
+    imports: [NgClass],
 })
 export class KeyboardComponent implements OnInit {
 
-  pianoKeys : any[] = []
-  pressedKeys: string[] = []
+  readonly pianoKeys = signal<any[]>([]);
 
-  constructor(private piano: PianoService, private zone:NgZone) {}
+  constructor(readonly piano: PianoService) {}
   
   ngOnInit(): void {
-    this.pianoKeys = this.piano.generateKeys();
-    this.piano.getEvent$().subscribe((keys: string[]) => {
-      this.pressedKeys = keys;
-   });
+    this.pianoKeys.set(this.piano.generateKeys());
   }
 
   play(key : number) : void {

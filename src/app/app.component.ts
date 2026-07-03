@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, viewChild } from '@angular/core';
 import { PianoService } from './shared/services/piano-service';
 
 // @ts-ignore  
@@ -7,19 +7,18 @@ import { JZZ } from 'jzz';
 import { Midi } from '@tonejs/midi'
 import { Note } from '@tonejs/midi/dist/Note';
 import { NotesDisplayComponent } from './notes-display/notes-display.component';
+import { KeyboardComponent } from './keyboard/keyboard.component';
 
 @Component({
     selector: 'app-root',
     templateUrl: './app.component.html',
     styleUrl: './app.component.css',
-    standalone: false
+    imports: [NotesDisplayComponent, KeyboardComponent],
 })
 export class AppComponent implements OnInit {
 
-  @ViewChild(NotesDisplayComponent) child!:NotesDisplayComponent;
+  private readonly notesDisplay = viewChild(NotesDisplayComponent);
   
-  midiNotes : Note[] = []
-
   constructor(private piano: PianoService) {}
 
   ngOnInit(): void {
@@ -35,19 +34,20 @@ export class AppComponent implements OnInit {
     this.piano.loadSounds()
   }
 
-  async loadMidi(ev : any) {
+  async loadMidi(ev : Event) {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
     var r = new FileReader();
-    r.onload = async (e) => { 
-      // @ts-ignore  
-      const midi =  new Midi(r.result)
+    r.onload = async () => { 
+      const midi = new Midi(r.result as ArrayBuffer)
       console.log("MIDI CARREGADO", midi)
-      this.midiNotes = midi.tracks[0].notes;
-      this.piano.playMidi(midi.tracks[0].notes)
-      this.child.teste(this.midiNotes)
+      const notes = midi.tracks[0].notes;
+      this.piano.playMidi(notes)
+      this.notesDisplay()?.teste(notes)
     }
-    r.readAsArrayBuffer(ev.target.files[0]);
+    r.readAsArrayBuffer(file);
   }
 
 }
-
-

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { PianoService } from '../shared/services/piano-service';
 import { Settings } from '../shared/models/settings';
 
@@ -6,20 +6,22 @@ import { Settings } from '../shared/models/settings';
     selector: 'app-settings',
     templateUrl: './settings.component.html',
     styleUrls: ['./settings.component.css'],
-    standalone: false
 })
 export class SettingsComponent {
 
-  settings !: Settings;
+  readonly settings = signal<Settings | null>(null);
 
   constructor(private piano : PianoService) { }
 
   loadSettings() : void {
-    this.settings = this.piano.settings //mover o resto dos param do service pra class
+    this.settings.set(this.piano.settings());
   }
 
   saveSettings() : void {
-    this.piano.settings = this.settings
+    const current = this.settings();
+    if (current) {
+      this.piano.settings.set(current);
+    }
   }
 
 }

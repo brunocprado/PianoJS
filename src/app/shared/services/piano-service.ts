@@ -1,6 +1,5 @@
-import { Injectable, OnInit } from "@angular/core"
+import { Injectable, signal } from "@angular/core"
 import { Note } from "@tonejs/midi/dist/Note";
-import { BehaviorSubject, Observable, Subject } from "rxjs";
 import { Settings } from "../models/settings";
 
 enum NoteEvent { DOWN = 144, UP = 128 }
@@ -21,19 +20,16 @@ export class PianoService {
 
     DEBUG : boolean = false;
 
-    public settings : Settings = new Settings(36, 96); //C2, C7
+    readonly settings = signal(new Settings(36, 96));
  
     minOctave : number = 2
-    playing : boolean = false;
+    readonly playing = signal(false);
+    readonly curTime = signal(0);
+    readonly pressedKeys = signal<string[]>([]);
 
     private context!: AudioContext;
     private pianoSamples: any = {};
 
-    private _event$ : Subject<string[]> = new BehaviorSubject<string[]>([]); 
-
-    curTime: number = 0
-    pressedKeys : string[] = []
-    // Suporta múltiplas "vozes" por tecla (MIDI pode ter overlap/repetição na mesma nota)
     private keyCounts: Record<number, number> = {}
     activeSounds: Record<number, AudioBufferSourceNode[]> = {}
     oscillators: Record<number, Array<{ oscillator1: OscillatorNode, oscillator2: OscillatorNode, gainNode: GainNode, filter: BiquadFilterNode }>> = {}
@@ -42,7 +38,7 @@ export class PianoService {
         const next = (this.keyCounts[midi] ?? 0) + 1;
         this.keyCounts[midi] = next;
         if (next === 1) {
-            this.pressedKeys.push(this.getNote(midi));
+            this.pressedKeys.update(keys => [...keys, this.getNote(midi)]);
         }
     }
 
@@ -51,8 +47,11 @@ export class PianoService {
         if (cur <= 1) {
             delete this.keyCounts[midi];
             const name = this.getNote(midi);
-            const idx = this.pressedKeys.indexOf(name);
-            if (idx >= 0) this.pressedKeys.splice(idx, 1);
+            this.pressedKeys.update(keys => {
+                const idx = keys.indexOf(name);
+                if (idx < 0) return keys;
+                return [...keys.slice(0, idx), ...keys.slice(idx + 1)];
+            });
         } else {
             this.keyCounts[midi] = cur - 1;
         }
@@ -67,11 +66,10 @@ export class PianoService {
 
     async loadSounds() {
         this.context = new AudioContext();
-        if(this.settings.useSamples) {
-            for (let i=this.settings.minNote;i<=this.settings.maxNote;i++) { //https://freesound.org/people/jobro/
+        const settings = this.settings();
+        if(settings.useSamples) {
+            for (let i = settings.minNote; i <= settings.maxNote; i++) {
                 let response = await fetch(`/assets/sounds/med_${this.midiToNoteName(i).toLowerCase()}.wav`); 
-                // let response = await fetch(`/assets/sounds/148432__neatonk__piano_loud_c4.wav`); 
-
                 this.pianoSamples[i] = await this.context.decodeAudioData(await response.arrayBuffer());
             }
         }
@@ -80,16 +78,13 @@ export class PianoService {
     private midiToFrequency( note : number) : number{
         return 440 * Math.pow(2, (note - 69) / 12);
     }
-
-    public getEvent$(): Observable<string[]> {
-        return this._event$.asObservable();
-    }
-
+    
     /*
         Transforma o int do pitch para uma nota só pra facilitar no debug
     */
     public getNote(n:number) : string {
-        let noteNumber = n - this.settings.minNote;
+        const settings = this.settings();
+        let noteNumber = n - settings.minNote;
         let octave = Math.floor(noteNumber/12) + this.minOctave;
 
         return noteMap[noteNumber % 12] + octave;
@@ -115,7 +110,8 @@ export class PianoService {
     }
 
     public processNote(data: number[]) : void {
-        if(!this.settings.useSamples || !this.pianoSamples[data[1]]) {
+        const settings = this.settings();
+        if(!settings.useSamples || !this.pianoSamples[data[1]]) {
             this.processNoteOscillator(data);
             return;
         }
@@ -123,15 +119,13 @@ export class PianoService {
         if(data[0] == NoteEvent.DOWN) {
             this.incKey(data[1])
             let source = this.context.createBufferSource();
-            source.loopStart = 0.05; // Definir o início do loop (ajuste conforme necessário)
-            source.loopEnd = 0.15//this.pianoSamples[data[1]].duration - ; // Definir o final do loop (ajuste conforme necessário)
+            source.loopStart = 0.05;
+            source.loopEnd = 0.15
             source.buffer = this.pianoSamples[data[1]];
-            // source.loop = true;
             source.connect(this.context.destination);
             source.start();
             (this.activeSounds[data[1]] ??= []).push(source);
         } else {
-            // UP pode chegar duplicado ou fora de ordem em MIDI -> blinda
             const stack = this.activeSounds[data[1]];
             const source = stack?.pop();
             if (source) {
@@ -142,60 +136,50 @@ export class PianoService {
             }
             this.decKey(data[1])
         }
-        this._event$.next(this.pressedKeys)
     }
 
     public processNoteOscillator(data: number[]) : void {
         if(data[0] == NoteEvent.DOWN && this.DEBUG) console.log(this.printNote(data))
         if(data[0] == NoteEvent.DOWN) {
             this.incKey(data[1])
-            // Criar osciladores
             let frequency = this.midiToFrequency(data[1])
             const oscillator1 = this.context.createOscillator();
             const oscillator2 = this.context.createOscillator();
             
-            oscillator1.type = 'sine'; // Primeira onda (sine)
-            oscillator2.type = 'triangle'; // Segunda onda (triangle)
+            oscillator1.type = 'sine';
+            oscillator2.type = 'triangle';
             
             oscillator1.frequency.setValueAtTime(frequency, this.context.currentTime);
             oscillator2.frequency.setValueAtTime(frequency, this.context.currentTime);
             
-            // Criar ganho
             const gainNode = this.context.createGain();
             
-            // Aplicar ADSR envelope
             const attackTime = 0.1;
             const decayTime = 0.2;
             const sustainLevel = 0.7;
             
             gainNode.gain.setValueAtTime(0, this.context.currentTime);
-            gainNode.gain.linearRampToValueAtTime(1, this.context.currentTime + attackTime); // Attack
-            gainNode.gain.linearRampToValueAtTime(sustainLevel, this.context.currentTime + attackTime + decayTime); // Decay
+            gainNode.gain.linearRampToValueAtTime(1, this.context.currentTime + attackTime);
+            gainNode.gain.linearRampToValueAtTime(sustainLevel, this.context.currentTime + attackTime + decayTime);
             
-            // Criar filtro
             const filter = this.context.createBiquadFilter();
             filter.type = 'lowpass';
             filter.frequency.setValueAtTime(1500, this.context.currentTime);
             
-            // Conectar nodes
             oscillator1.connect(filter);
             oscillator2.connect(filter);
             filter.connect(gainNode);
             gainNode.connect(this.context.destination);
             
-            // Iniciar osciladores
             oscillator1.start();
             oscillator2.start();
             
-            // Guardar osciladores e nodes para parar depois
             (this.oscillators[data[1]] ??= []).push({ oscillator1, oscillator2, gainNode, filter });
         } else {
             const stack = this.oscillators[data[1]];
             const voice = stack?.pop();
             if (!voice) {
-                // UP duplicado/out-of-order
                 this.decKey(data[1])
-                this._event$.next(this.pressedKeys)
                 return;
             }
             const { oscillator1, oscillator2, gainNode } = voice;
@@ -203,17 +187,16 @@ export class PianoService {
             const releaseTime = 0.3;
             gainNode.gain.cancelScheduledValues(this.context.currentTime);
             gainNode.gain.setValueAtTime(gainNode.gain.value, this.context.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0, this.context.currentTime + releaseTime); // Release
+            gainNode.gain.linearRampToValueAtTime(0, this.context.currentTime + releaseTime);
             
             oscillator1.stop(this.context.currentTime + releaseTime);
             oscillator2.stop(this.context.currentTime + releaseTime);
 
             if (stack && stack.length === 0) {
-                delete this.oscillators[data[1]]; // Remover do objeto de osciladores ativos
+                delete this.oscillators[data[1]];
             }
             this.decKey(data[1])
         }
-        this._event$.next(this.pressedKeys)
     }
 
     private printNote(data: number[]) : string[] {
@@ -221,41 +204,41 @@ export class PianoService {
     }
 
     public generateKeys() : any[] {
+        const settings = this.settings();
         var tmp = []
         var curNote = 0;
         var curOctave = 2;
-        for(var i = 0; i<=(this.settings.maxNote - this.settings.minNote); i++){
+        for(var i = 0; i <= (settings.maxNote - settings.minNote); i++){
             if(curNote > noteMap.length - 1) {
                 curNote = 0
                 curOctave +=1
             }
-            tmp.push({id:this.settings.minNote + i, note: noteMap[curNote], octave: curOctave, type: (noteMap[curNote].includes("#")) ? 'black' : 'white'})
+            tmp.push({id: settings.minNote + i, note: noteMap[curNote], octave: curOctave, type: (noteMap[curNote].includes("#")) ? 'black' : 'white'})
             curNote++
         }    
         return tmp
     }
 
     public async playMidi(notes : Note[]) {
-        this.curTime = 0;
-        this.playing = true;
+        this.curTime.set(0);
+        this.playing.set(true);
 
         for(var i = 0; i<= notes.length; i++){
             if(!notes[i] || !notes[i].time) continue;
             if(notes[i].midi < 36) continue;
-            while(!this.playing) {
+            while(!this.playing()) {
                 await new Promise(r => setTimeout(r, 100));
             }
-            while(this.curTime < notes[i].time * 1000){
+            while(this.curTime() < notes[i].time * 1000){
                 await new Promise(r => setTimeout(r, WAIT_TIME));
-                this.curTime += WAIT_TIME
+                this.curTime.update(t => t + WAIT_TIME);
             }   
             await this.playNoteFromMidi(notes[i])
-            if(i == notes.length - 1) this.playing = false;
+            if(i == notes.length - 1) this.playing.set(false);
         }
     }
 
     private async playNoteFromMidi(note: Note) {
-        // 3o byte do MIDI é velocity (0-127); duração NÃO é velocity.
         const vel = Math.max(1, Math.min(127, Math.round((note.velocity ?? 0.8) * 127)));
         this.processNote([NoteEvent.DOWN, note.midi, vel])
         setTimeout(() => {

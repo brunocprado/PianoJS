@@ -1,6 +1,6 @@
-@if (settings) {
-  <input type="text" [value]="settings.minNote">
-  <input type="text" [value]="settings.maxNote">
+@if (settings(); as s) {
+  <input type="text" [value]="s.minNote">
+  <input type="text" [value]="s.maxNote">
 }
 
 <input type="button" value="Save" (click)="saveSettings()">
