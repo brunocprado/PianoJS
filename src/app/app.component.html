@@ -1,20 +1,65 @@
-<div class="h-screen h-[100dvh] flex flex-col w-full">
-  <div class="flex items-center justify-between border-b border-white/10 bg-black/20 backdrop-blur" style="padding: 8px 10px 12px 10px;">
-    <div class="font-bold text-sm">PianoJS</div>
+<div class="app-shell">
+  <p-toolbar styleClass="app-toolbar">
+    <ng-template #start>
+      <div class="flex flex-wrap items-center gap-3">
+        @if (piano.sustainPedal()) {
+          <p-tag severity="info" value="Sustain" icon="pi pi-arrow-down" [rounded]="true" />
+        }
+        @if (piano.recording()) {
+          <p-tag severity="danger" value="REC" icon="pi pi-circle-fill" [rounded]="true" />
+        }
+      </div>
+    </ng-template>
 
-    <div class="flex flex-row gap-4">
-      <button class="ui-btn ui-btn-sm" type="button" (click)="load()">Carregar samples</button>
-      <input class="ui-field ui-field-sm ui-file" type="file" id="arqMidi" (change)="loadMidi($event)" />
-    </div>
-  </div>
+    <ng-template #end>
+      <div class="flex flex-wrap items-center gap-2">
+        <p-button
+          icon="pi pi-cog"
+          label="Configurações"
+          [outlined]="true"
+          severity="secondary"
+          size="small"
+          (onClick)="openSettings()" />
+        <p-button
+          icon="pi pi-download"
+          label="Samples"
+          [outlined]="true"
+          severity="secondary"
+          size="small"
+          (onClick)="load()" />
+        <p-button
+          [icon]="piano.recording() ? 'pi pi-stop' : 'pi pi-circle'"
+          [label]="piano.recording() ? 'Salvar MIDI' : 'Gravar'"
+          [severity]="piano.recording() ? 'danger' : 'secondary'"
+          [outlined]="!piano.recording()"
+          size="small"
+          (onClick)="toggleRecording()" />
+        <p-button
+          icon="pi pi-file-import"
+          label="Abrir MIDI"
+          size="small"
+          (onClick)="triggerMidiUpload()" />
+        <input
+          #midiInput
+          type="file"
+          class="hidden"
+          accept=".mid,.midi,audio/midi"
+          (change)="loadMidi($event)" />
+      </div>
+    </ng-template>
+  </p-toolbar>
 
-  <div class="flex-1 min-h-0 flex flex-col">
-    <div class="flex-1 min-h-0 bg-black/10 border-t border-white/5 flex overflow-hidden">
-      <app-notes-display class="flex-1 min-h-0 h-full w-full block"></app-notes-display>
+  <app-settings-dialog
+    [visible]="showSettings()"
+    (closed)="closeSettings()"
+    (applied)="onSettingsApplied()" />
+
+  <div class="stage-panel">
+    <div class="notes-stage">
+      <app-notes-display class="block h-full min-h-0 w-full flex-1"></app-notes-display>
     </div>
-    <div class="shrink-0 h-[260px] bg-black/30 border-t border-white/10 shadow-[0_-18px_60px_rgba(0,0,0,.55)]">
+    <div class="keyboard-dock">
       <app-keyboard></app-keyboard>
     </div>
   </div>
 </div>
-

@@ -1,23 +1,19 @@
-/* tslint:disable:no-unused-variable */
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { By } from '@angular/platform-browser';
-import { DebugElement } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { SettingsDialogComponent } from './settings.component';
+import { PianoService } from '../shared/services/piano-service';
 
-import { SettingsComponent } from './settings.component';
+describe('SettingsDialogComponent', () => {
+  let component: SettingsDialogComponent;
+  let fixture: ComponentFixture<SettingsDialogComponent>;
 
-describe('SettingsComponent', () => {
-  let component: SettingsComponent;
-  let fixture: ComponentFixture<SettingsComponent>;
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [SettingsDialogComponent],
+      providers: [PianoService, provideZonelessChangeDetection()],
+    }).compileComponents();
 
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      declarations: [ SettingsComponent ]
-    })
-    .compileComponents();
-  }));
-
-  beforeEach(() => {
-    fixture = TestBed.createComponent(SettingsComponent);
+    fixture = TestBed.createComponent(SettingsDialogComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

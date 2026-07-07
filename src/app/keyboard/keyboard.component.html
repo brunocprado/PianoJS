@@ -1,8 +1,15 @@
 <div id="pianoContainer">
-  @for (pianoKey of pianoKeys(); track pianoKey) {
-    <div [id]="pianoKey.note.replace('#','b') + pianoKey.octave" [ngClass]="['containerKey', pianoKey.type, piano.pressedKeys().includes(pianoKey.note + pianoKey.octave) ? 'pressed' : '' ]"
-      (mousedown)="play(pianoKey.id)" (mouseup)="stop(pianoKey.id)">
-      <div><span>{{pianoKey.note + pianoKey.octave}}</span></div>
+  @for (pianoKey of pianoKeys(); track pianoKey.id) {
+    <div
+      [id]="pianoKey.note.replace('#','b') + pianoKey.octave"
+      [ngClass]="['containerKey', pianoKey.type, piano.pressedKeys().includes(pianoKey.note + pianoKey.octave) ? 'pressed' : '']"
+      (mousedown)="play(pianoKey.id)"
+      (mouseup)="stop(pianoKey.id)"
+      (mouseleave)="stop(pianoKey.id)"
+      (touchstart.prevent)="play(pianoKey.id)"
+      (touchend.prevent)="stop(pianoKey.id)"
+      (touchcancel.prevent)="stop(pianoKey.id)">
+      <div><span>{{ pianoKey.note + pianoKey.octave }}</span></div>
     </div>
   }
 </div>

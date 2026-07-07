@@ -1,5 +1,9 @@
 <div class="display-root" #root>
-  @for (note of notes().slice(0, 40); track note) {
+  @if (currentLyric()) {
+    <div class="lyrics-chip">{{ currentLyric() }}</div>
+  }
+
+  @for (note of notes().slice(0, 40); track note.midi + '-' + note.time) {
     <div class="note"
       [style.left.px]="getLeft(note.name)"
       [style.bottom.px]="((note.time*1000) - piano.curTime())/2"
@@ -7,16 +11,26 @@
       <div class="note__body"
         [style.--note-color]="getNoteColor(note.name)"
         [style.height.px]="(note.duration * 1000)/2">
-        <span>{{note.name}}</span>
+        <span>{{ note.name }}</span>
       </div>
     </div>
   }
 
-  <div class="control">
-    <div class="control__stats">
-      <span>TIME: {{(piano.curTime()/1000).toFixed(2)}}</span>
-      <!-- <span>NEXT: {{notes.length > 0 ? notes[0].time.toFixed(2) : ''}}</span> -->
-    </div>
-    <button class="ui-btn" type="button" (click)="pause()">Pause</button>
-  </div>
+  <p-toolbar styleClass="playback-bar">
+    <ng-template #start>
+      <p-tag
+        [value]="(piano.curTime()/1000).toFixed(2) + 's'"
+        icon="pi pi-clock"
+        severity="secondary"
+        [rounded]="true" />
+    </ng-template>
+    <ng-template #end>
+      <p-button
+        [icon]="piano.playing() ? 'pi pi-pause' : 'pi pi-play'"
+        [label]="piano.playing() ? 'Pausar' : 'Retomar'"
+        size="small"
+        [rounded]="true"
+        (onClick)="pause()" />
+    </ng-template>
+  </p-toolbar>
 </div>

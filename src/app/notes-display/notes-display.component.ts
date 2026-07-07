@@ -1,11 +1,16 @@
 import { Component, ElementRef, OnDestroy, signal, viewChild } from '@angular/core';
+import { Button } from 'primeng/button';
+import { Tag } from 'primeng/tag';
+import { Toolbar } from 'primeng/toolbar';
 import { PianoService } from '../shared/services/piano-service';
 import { Note } from '@tonejs/midi/dist/Note';
+import { LyricLine } from '../shared/models/lyric-line';
 
 @Component({
     selector: 'app-notes-display',
     templateUrl: './notes-display.component.html',
     styleUrls: ['./notes-display.component.css'],
+    imports: [Toolbar, Button, Tag],
 })
 export class NotesDisplayComponent implements OnDestroy {
 
@@ -13,11 +18,12 @@ export class NotesDisplayComponent implements OnDestroy {
 
   private gcIntervalId: number | null = null;
 
-  readonly whiteKeyW = signal(60); 
+  readonly whiteKeyW = signal(60);
   readonly blackKeyW = signal(34);
   readonly notes = signal<Note[]>([]);
+  readonly lyrics = signal<LyricLine[]>([]);
   readonly posX = signal<Record<string, number>>({});
-  
+
   constructor(readonly piano: PianoService) { }
 
   private parsePx(value: string | null | undefined): number | null {
@@ -54,8 +60,21 @@ export class NotesDisplayComponent implements OnDestroy {
     return this.posX()[noteName] ?? -9999;
   }
 
-  teste(notes : Note[]){
+  currentLyric(): string {
+    const lines = this.lyrics();
+    if (!lines.length) return '';
+    const currentTime = this.piano.curTime() / 1000;
+    let current = '';
+    for (const line of lines) {
+      if (line.time <= currentTime) current = line.text;
+      else break;
+    }
+    return current;
+  }
+
+  loadNotes(notes: Note[], lyrics: LyricLine[] = []) {
     this.notes.set(notes);
+    this.lyrics.set(lyrics);
 
     const rootLeft = this.rootEl().nativeElement.getBoundingClientRect().left;
     const pianoContainer = document.querySelector('#pianoContainer') as HTMLElement | null;
@@ -67,10 +86,10 @@ export class NotesDisplayComponent implements OnDestroy {
     }
 
     const positions: Record<string, number> = {};
-    for (var i of this.piano.generateKeys()){
-      var tmp = document.querySelector('#pianoContainer #' + i.note.replace("#", "b") + i.octave + '.containerKey')
-      if(!tmp) continue
-      positions[i.note + i.octave] = tmp.getBoundingClientRect().left - rootLeft
+    for (const key of this.piano.generateKeys()) {
+      const element = document.querySelector('#pianoContainer #' + key.note.replace("#", "b") + key.octave + '.containerKey');
+      if (!element) continue;
+      positions[key.note + key.octave] = element.getBoundingClientRect().left - rootLeft;
     }
     this.posX.set(positions);
 
@@ -82,7 +101,7 @@ export class NotesDisplayComponent implements OnDestroy {
     }, 250);
   }
 
-  pause(){
+  pause() {
     this.piano.playing.update(p => !p);
   }
 
@@ -91,5 +110,4 @@ export class NotesDisplayComponent implements OnDestroy {
       clearInterval(this.gcIntervalId);
     }
   }
-
 }
