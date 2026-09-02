@@ -1,7 +1,7 @@
-import { Component, ElementRef, OnDestroy, signal, viewChild } from '@angular/core';
-import { Button } from 'primeng/button';
-import { Tag } from 'primeng/tag';
-import { Toolbar } from 'primeng/toolbar';
+import { Component, ElementRef, OnDestroy, signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
+import { Button } from '@openng/optimus-ui/button';
+import { Tag } from '@openng/optimus-ui/tag';
+import { Toolbar } from '@openng/optimus-ui/toolbar';
 import { PianoService } from '../shared/services/piano-service';
 import { Note } from '@tonejs/midi/dist/Note';
 import { LyricLine } from '../shared/models/lyric-line';
@@ -10,6 +10,7 @@ import { LyricLine } from '../shared/models/lyric-line';
     selector: 'app-notes-display',
     templateUrl: './notes-display.component.html',
     styleUrls: ['./notes-display.component.css'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [Toolbar, Button, Tag],
 })
 export class NotesDisplayComponent implements OnDestroy {

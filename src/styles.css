@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "primeicons/primeicons.css";
+@import "@openng/icons/openng-icons.css";
 
 @layer base {
   :root {

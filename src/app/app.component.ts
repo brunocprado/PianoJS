@@ -1,8 +1,8 @@
-import { Component, ElementRef, OnInit, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, OnInit, signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
 import { PianoService } from './shared/services/piano-service';
-import { Button } from 'primeng/button';
-import { Tag } from 'primeng/tag';
-import { Toolbar } from 'primeng/toolbar';
+import { Button } from '@openng/optimus-ui/button';
+import { Tag } from '@openng/optimus-ui/tag';
+import { Toolbar } from '@openng/optimus-ui/toolbar';
 
 // @ts-ignore
 import { JZZ } from 'jzz';
@@ -17,6 +17,7 @@ import { LyricLine } from './shared/models/lyric-line';
     selector: 'app-root',
     templateUrl: './app.component.html',
     styleUrl: './app.component.css',
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
       NotesDisplayComponent,
       KeyboardComponent,

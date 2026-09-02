@@ -1,9 +1,9 @@
-import { Component, effect, input, output, signal } from '@angular/core';
+import { Component, effect, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Button } from 'primeng/button';
-import { Dialog } from 'primeng/dialog';
-import { Select } from 'primeng/select';
-import { ToggleSwitch } from 'primeng/toggleswitch';
+import { Button } from '@openng/optimus-ui/button';
+import { Dialog } from '@openng/optimus-ui/dialog';
+import { Select } from '@openng/optimus-ui/select';
+import { ToggleSwitch } from '@openng/optimus-ui/toggleswitch';
 import { PianoService } from '../shared/services/piano-service';
 import { Settings } from '../shared/models/settings';
 
@@ -15,6 +15,7 @@ interface SelectOption<T = number> {
 @Component({
     selector: 'app-settings-dialog',
     templateUrl: './settings.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [FormsModule, Dialog, Select, ToggleSwitch, Button],
 })
 export class SettingsDialogComponent {

@@ -1,4 +1,4 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { PianoService } from '../shared/services/piano-service';
 
@@ -6,6 +6,7 @@ import { PianoService } from '../shared/services/piano-service';
     selector: 'app-keyboard',
     templateUrl: './keyboard.component.html',
     styleUrl: './keyboard.component.css',
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [NgClass],
 })
 export class KeyboardComponent {
