@@ -2,6 +2,7 @@ import { Injectable, signal } from "@angular/core";
 import { Midi } from "@tonejs/midi";
 import { Note } from "@tonejs/midi/dist/Note";
 import { Settings } from "../models/settings";
+import { SynthPiano } from "./synth-piano";
 
 enum NoteEvent { DOWN = 144, UP = 128 }
 const SUSTAIN_CONTROLLER = 64;
@@ -39,11 +40,11 @@ export class PianoService {
 
     private context!: AudioContext;
     private pianoSamples: Record<number, AudioBuffer> = {};
+    private synth: SynthPiano | null = null;
 
     private keyCounts: Record<number, number> = {};
     private sustainedNotes = new Set<number>();
     activeSounds: Record<number, AudioBufferSourceNode[]> = {};
-    oscillators: Record<number, Array<{ oscillator1: OscillatorNode, oscillator2: OscillatorNode, gainNode: GainNode, filter: BiquadFilterNode }>> = {};
 
     private recordingStartTime = 0;
     private recordedNotes: RecordedNote[] = [];
@@ -143,10 +144,6 @@ export class PianoService {
         return midi.toArray();
     }
 
-    private midiToFrequency(note: number): number {
-        return 440 * Math.pow(2, (note - 69) / 12);
-    }
-
     public getNote(n: number): string {
         const settings = this.settings();
         const noteNumber = n - settings.minNote;
@@ -203,7 +200,7 @@ export class PianoService {
         }
 
         if (!settings.useSamples || !this.pianoSamples[pitch]) {
-            this.processNoteOscillator([event, pitch, velocity]);
+            this.playSynthNote(event, pitch, velocity);
             return;
         }
 
@@ -260,69 +257,27 @@ export class PianoService {
         }
     }
 
-    private stopOscillatorSound(midi: number) {
-        const stack = this.oscillators[midi];
-        const voice = stack?.pop();
-        if (!voice) return;
-
-        const { oscillator1, oscillator2, gainNode } = voice;
-        const releaseTime = 0.3;
-        gainNode.gain.cancelScheduledValues(this.context.currentTime);
-        gainNode.gain.setValueAtTime(gainNode.gain.value, this.context.currentTime);
-        gainNode.gain.linearRampToValueAtTime(0, this.context.currentTime + releaseTime);
-        oscillator1.stop(this.context.currentTime + releaseTime);
-        oscillator2.stop(this.context.currentTime + releaseTime);
-
-        if (stack && stack.length === 0) {
-            delete this.oscillators[midi];
-        }
+    private ensureSynth(): SynthPiano {
+        if (!this.context) this.context = new AudioContext();
+        if (this.context.state === "suspended") void this.context.resume();
+        return this.synth ??= new SynthPiano(this.context);
     }
 
-    public processNoteOscillator(data: number[]): void {
-        if (!this.context) {
-            this.context = new AudioContext();
+    private playSynthNote(event: number, pitch: number, velocity: number): void {
+        if (event === NoteEvent.DOWN && this.DEBUG) console.log(this.printNote([event, pitch, velocity]));
+        if (event === NoteEvent.DOWN) {
+            this.incKey(pitch);
+            this.ensureSynth().noteOn(pitch, velocity);
+            return;
         }
 
-        if (data[0] === NoteEvent.DOWN && this.DEBUG) console.log(this.printNote(data));
-        if (data[0] === NoteEvent.DOWN) {
-            this.incKey(data[1]);
-            const frequency = this.midiToFrequency(data[1]);
-            const oscillator1 = this.context.createOscillator();
-            const oscillator2 = this.context.createOscillator();
+        this.synth?.noteOff(pitch);
+        this.sustainedNotes.delete(pitch);
+        this.decKey(pitch);
+    }
 
-            oscillator1.type = 'sine';
-            oscillator2.type = 'triangle';
-
-            oscillator1.frequency.setValueAtTime(frequency, this.context.currentTime);
-            oscillator2.frequency.setValueAtTime(frequency, this.context.currentTime);
-
-            const gainNode = this.context.createGain();
-            const attackTime = 0.1;
-            const decayTime = 0.2;
-            const sustainLevel = 0.7;
-
-            gainNode.gain.setValueAtTime(0, this.context.currentTime);
-            gainNode.gain.linearRampToValueAtTime(1, this.context.currentTime + attackTime);
-            gainNode.gain.linearRampToValueAtTime(sustainLevel, this.context.currentTime + attackTime + decayTime);
-
-            const filter = this.context.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(1500, this.context.currentTime);
-
-            oscillator1.connect(filter);
-            oscillator2.connect(filter);
-            filter.connect(gainNode);
-            gainNode.connect(this.context.destination);
-
-            oscillator1.start();
-            oscillator2.start();
-
-            (this.oscillators[data[1]] ??= []).push({ oscillator1, oscillator2, gainNode, filter });
-        } else {
-            this.stopOscillatorSound(data[1]);
-            this.sustainedNotes.delete(data[1]);
-            this.decKey(data[1]);
-        }
+    private stopOscillatorSound(midi: number) {
+        this.synth?.noteOff(midi);
     }
 
     private recordMidiEvent(event: number, pitch: number, velocity: number) {
