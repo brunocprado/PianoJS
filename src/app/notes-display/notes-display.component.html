@@ -1,19 +1,8 @@
 <div class="display-root" #root>
+  <canvas #canvas class="notes-canvas" aria-hidden="true"></canvas>
+
   @if (currentLyric()) {
     <div class="lyrics-chip">{{ currentLyric() }}</div>
-  }
-
-  @for (note of notes().slice(0, 40); track note.midi + '-' + note.time) {
-    <div class="note"
-      [style.left.px]="getLeft(note.name)"
-      [style.bottom.px]="((note.time*1000) - piano.curTime())/2"
-      [style.width.px]="getKeyWidth(note.name)">
-      <div class="note__body"
-        [style.--note-color]="getNoteColor(note.name)"
-        [style.height.px]="(note.duration * 1000)/2">
-        <span>{{ note.name }}</span>
-      </div>
-    </div>
   }
 
   <p-toolbar styleClass="playback-bar">

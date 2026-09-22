@@ -2,6 +2,7 @@
   @for (pianoKey of pianoKeys(); track pianoKey.id) {
     <div
       [id]="pianoKey.note.replace('#','b') + pianoKey.octave"
+      [attr.data-midi]="pianoKey.id"
       [ngClass]="['containerKey', pianoKey.type, piano.pressedKeys().includes(pianoKey.note + pianoKey.octave) ? 'pressed' : '']"
       (mousedown)="play(pianoKey.id)"
       (mouseup)="stop(pianoKey.id)"

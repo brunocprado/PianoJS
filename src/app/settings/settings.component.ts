@@ -28,6 +28,7 @@ export class SettingsDialogComponent {
     minOctave: 2,
     octaveCount: 5,
     useSamples: true,
+    showTracks: true,
   });
 
   readonly startOctaveOptions: SelectOption[] = [1, 2, 3, 4, 5].map(o => ({
@@ -54,6 +55,7 @@ export class SettingsDialogComponent {
       minOctave: s.minOctave,
       octaveCount: s.octaveCount,
       useSamples: s.useSamples,
+      showTracks: s.showTracks,
     });
   }
 
@@ -63,13 +65,13 @@ export class SettingsDialogComponent {
     }
   }
 
-  updateDraft(partial: Partial<{ minOctave: number; octaveCount: number; useSamples: boolean }>): void {
+  updateDraft(partial: Partial<{ minOctave: number; octaveCount: number; useSamples: boolean; showTracks: boolean }>): void {
     this.draft.update(d => ({ ...d, ...partial }));
   }
 
   async applySettings(): Promise<void> {
     const d = this.draft();
-    const settings = Settings.fromOctaves(d.minOctave, d.octaveCount, d.useSamples);
+    const settings = Settings.fromOctaves(d.minOctave, d.octaveCount, d.useSamples, d.showTracks);
     this.piano.applySettings(settings);
     if (settings.useSamples) {
       await this.piano.loadSounds();

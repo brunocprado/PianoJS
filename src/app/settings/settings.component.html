@@ -16,7 +16,7 @@
       </span>
       <div>
         <div class="text-base font-semibold leading-tight">Configurações</div>
-        <div class="text-xs text-white/55">Teclado, oitavas e tipo de som</div>
+        <div class="text-xs text-white/55">Teclado, oitavas, som e pista</div>
       </div>
     </div>
   </ng-template>
@@ -57,6 +57,16 @@
         <p-toggleswitch
           [ngModel]="d.useSamples"
           (ngModelChange)="updateDraft({ useSamples: $event })" />
+      </div>
+
+      <div class="settings-toggle-row">
+        <div>
+          <div class="text-sm font-medium">Fundo das tracks</div>
+          <div class="mt-0.5 text-xs text-white/55">Grade e faixas atrás das notas</div>
+        </div>
+        <p-toggleswitch
+          [ngModel]="d.showTracks"
+          (ngModelChange)="updateDraft({ showTracks: $event })" />
       </div>
 
       <p class="m-0 rounded-xl border border-white/8 bg-white/[0.02] px-3.5 py-3 text-xs leading-relaxed text-white/55">

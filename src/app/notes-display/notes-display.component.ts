@@ -1,64 +1,65 @@
-import { Component, ElementRef, OnDestroy, signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, DestroyRef, effect, ElementRef, signal, untracked, viewChild } from '@angular/core';
 import { Button } from '@openng/optimus-ui/button';
 import { Tag } from '@openng/optimus-ui/tag';
 import { Toolbar } from '@openng/optimus-ui/toolbar';
-import { PianoService } from '../shared/services/piano-service';
 import { Note } from '@tonejs/midi/dist/Note';
+import { PianoService } from '../shared/services/piano-service';
 import { LyricLine } from '../shared/models/lyric-line';
+import { FallingNotesRenderer, KeyLane } from './falling-notes-renderer';
 
 @Component({
-    selector: 'app-notes-display',
-    templateUrl: './notes-display.component.html',
-    styleUrls: ['./notes-display.component.css'],
-    changeDetection: ChangeDetectionStrategy.Eager,
-    imports: [Toolbar, Button, Tag],
+  selector: 'app-notes-display',
+  templateUrl: './notes-display.component.html',
+  styleUrl: './notes-display.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [Toolbar, Button, Tag],
 })
-export class NotesDisplayComponent implements OnDestroy {
+export class NotesDisplayComponent {
 
-  private readonly rootEl = viewChild.required<ElementRef<HTMLDivElement>>('root');
+  private readonly rootRef = viewChild<ElementRef<HTMLElement>>('root');
+  private readonly canvasRef = viewChild<ElementRef<HTMLCanvasElement>>('canvas');
+  private readonly renderer = new FallingNotesRenderer();
 
-  private gcIntervalId: number | null = null;
+  private resizeObserver: ResizeObserver | null = null;
+  private mutationObserver: MutationObserver | null = null;
+  private pianoObserved = false;
+  private rafId = 0;
+  private dirty = true;
+  private destroyed = false;
+  private lastDrawnTime = Number.NaN;
 
-  readonly whiteKeyW = signal(60);
-  readonly blackKeyW = signal(34);
-  readonly notes = signal<Note[]>([]);
   readonly lyrics = signal<LyricLine[]>([]);
-  readonly posX = signal<Record<string, number>>({});
 
-  constructor(readonly piano: PianoService) { }
+  constructor(
+    readonly piano: PianoService,
+    destroyRef: DestroyRef,
+  ) {
+    effect(() => {
+      const playing = this.piano.playing();
+      untracked(() => {
+        if (playing) this.requestFrame();
+        else this.markDirty();
+      });
+    });
 
-  private parsePx(value: string | null | undefined): number | null {
-    if (!value) return null;
-    const n = Number.parseFloat(value);
-    return Number.isFinite(n) ? n : null;
-  }
+    effect(() => {
+      const showTracks = this.piano.settings().showTracks;
+      untracked(() => {
+        this.renderer.setShowTracks(showTracks);
+        this.markDirty();
+      });
+    });
 
-  private getSemitone(noteName: string): number {
-    const name = noteName.replace(/[0-9]/g, '');
-    const map: Record<string, number> = {
-      C: 0, 'C#': 1, Db: 1,
-      D: 2, 'D#': 3, Eb: 3,
-      E: 4,
-      F: 5, 'F#': 6, Gb: 6,
-      G: 7, 'G#': 8, Ab: 8,
-      A: 9, 'A#': 10, Bb: 10,
-      B: 11,
-    };
-    return map[name] ?? 0;
-  }
+    afterNextRender(() => {
+      const canvas = this.canvasRef()?.nativeElement;
+      const root = this.rootRef()?.nativeElement;
+      if (!canvas || !root) return;
+      this.renderer.attach(canvas);
+      this.observeLayout(root);
+      this.syncLayout();
+    });
 
-  getNoteColor(noteName: string): string {
-    const semitone = this.getSemitone(noteName);
-    const hue = (semitone * 30) % 360;
-    return `hsl(${hue} 70% 55%)`;
-  }
-
-  getKeyWidth(noteName: string): number {
-    return noteName.includes('#') ? this.blackKeyW() : this.whiteKeyW();
-  }
-
-  getLeft(noteName: string): number {
-    return this.posX()[noteName] ?? -9999;
+    destroyRef.onDestroy(() => this.teardown());
   }
 
   currentLyric(): string {
@@ -74,41 +75,103 @@ export class NotesDisplayComponent implements OnDestroy {
   }
 
   loadNotes(notes: Note[], lyrics: LyricLine[] = []) {
-    this.notes.set(notes);
     this.lyrics.set(lyrics);
-
-    const rootLeft = this.rootEl().nativeElement.getBoundingClientRect().left;
-    const pianoContainer = document.querySelector('#pianoContainer') as HTMLElement | null;
-
-    if (pianoContainer) {
-      const css = getComputedStyle(pianoContainer);
-      this.whiteKeyW.set(this.parsePx(css.getPropertyValue('--white-w')) ?? this.whiteKeyW());
-      this.blackKeyW.set(this.parsePx(css.getPropertyValue('--black-w')) ?? this.blackKeyW());
-    }
-
-    const positions: Record<string, number> = {};
-    for (const key of this.piano.generateKeys()) {
-      const element = document.querySelector('#pianoContainer #' + key.note.replace("#", "b") + key.octave + '.containerKey');
-      if (!element) continue;
-      positions[key.note + key.octave] = element.getBoundingClientRect().left - rootLeft;
-    }
-    this.posX.set(positions);
-
-    if (this.gcIntervalId !== null) {
-      clearInterval(this.gcIntervalId);
-    }
-    this.gcIntervalId = window.setInterval(() => {
-      this.notes.update(n => n.filter(i => (i.time * 1000) + i.duration * 1000 + 500 >= this.piano.curTime()));
-    }, 250);
+    this.renderer.setNotes(notes);
+    this.syncLayout();
+    this.markDirty();
   }
 
   pause() {
     this.piano.playing.update(p => !p);
   }
 
-  ngOnDestroy(): void {
-    if (this.gcIntervalId !== null) {
-      clearInterval(this.gcIntervalId);
+  private frame = () => {
+    this.rafId = 0;
+    if (this.destroyed) return;
+
+    const playing = this.piano.playing();
+    if (!this.renderer.ready) {
+      if (playing) this.requestFrame();
+      return;
     }
+
+    const time = this.piano.curTime();
+    if (this.dirty || time !== this.lastDrawnTime) {
+      this.renderer.draw(time);
+      this.lastDrawnTime = time;
+      this.dirty = false;
+    }
+    if (playing) this.requestFrame();
+  };
+
+  private requestFrame() {
+    if (this.destroyed || this.rafId) return;
+    this.rafId = requestAnimationFrame(this.frame);
+  }
+
+  private markDirty() {
+    this.dirty = true;
+    this.requestFrame();
+  }
+
+  private observeLayout(root: HTMLElement) {
+    if (typeof ResizeObserver === 'undefined') return;
+    this.resizeObserver = new ResizeObserver(() => this.syncLayout());
+    this.resizeObserver.observe(root);
+    this.ensurePianoObserver();
+  }
+
+  private ensurePianoObserver() {
+    if (this.pianoObserved || !this.resizeObserver) return;
+    const piano = document.getElementById('pianoContainer');
+    if (!piano) return;
+    this.resizeObserver.observe(piano);
+    this.mutationObserver = new MutationObserver(() => this.syncLayout());
+    this.mutationObserver.observe(piano, { childList: true });
+    this.pianoObserved = true;
+  }
+
+  private syncLayout() {
+    const canvas = this.canvasRef()?.nativeElement;
+    if (!canvas || this.destroyed) return;
+
+    this.ensurePianoObserver();
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    if (width <= 0 || height <= 0) return;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.renderer.resize(width, height, dpr);
+    this.renderer.setLanes(this.measureLanes(canvas, dpr));
+    this.markDirty();
+  }
+
+  /** Reads the live key boxes so lanes follow centering, clamp widths, and black-key overlap. */
+  private measureLanes(canvas: HTMLCanvasElement, dpr: number): Map<number, KeyLane> {
+    const lanes = new Map<number, KeyLane>();
+    const container = document.getElementById('pianoContainer');
+    if (!container) return lanes;
+
+    const origin = canvas.getBoundingClientRect().left;
+    const snap = (value: number) => Math.round(value * dpr) / dpr;
+
+    for (const el of container.querySelectorAll<HTMLElement>('[data-midi]')) {
+      const midi = Number(el.dataset['midi']);
+      if (!Number.isFinite(midi)) continue;
+      const rect = el.getBoundingClientRect();
+      lanes.set(midi, {
+        x: snap(rect.left - origin),
+        width: snap(rect.width),
+        black: el.classList.contains('black'),
+      });
+    }
+    return lanes;
+  }
+
+  private teardown() {
+    this.destroyed = true;
+    cancelAnimationFrame(this.rafId);
+    this.resizeObserver?.disconnect();
+    this.mutationObserver?.disconnect();
   }
 }
