@@ -2,6 +2,21 @@
   <p-toolbar styleClass="app-toolbar">
     <ng-template #start>
       <div class="flex flex-wrap items-center gap-3">
+        <div class="mode-switch" role="group" aria-label="Modo">
+          <p-button
+            label="Livre"
+            size="small"
+            [outlined]="game.mode() !== 'free'"
+            [severity]="game.mode() === 'free' ? 'primary' : 'secondary'"
+            (onClick)="setMode('free')" />
+          <p-button
+            label="Pontuação"
+            icon="pi pi-star"
+            size="small"
+            [outlined]="game.mode() !== 'score'"
+            [severity]="game.mode() === 'score' ? 'primary' : 'secondary'"
+            (onClick)="setMode('score')" />
+        </div>
         @if (piano.sustainPedal()) {
           <p-tag severity="info" value="Sustain" icon="pi pi-arrow-down" [rounded]="true" />
         }

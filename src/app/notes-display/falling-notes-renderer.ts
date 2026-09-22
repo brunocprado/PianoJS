@@ -136,6 +136,8 @@ export class FallingNotesRenderer {
   private keyboardMin = 0;
   private keyboardMax = 0;
   private showTracks = true;
+  private scoreMode = false;
+  private marks: readonly string[] = [];
   private readonly textWidths = new Map<string, number>();
 
   get ready(): boolean {
@@ -155,6 +157,14 @@ export class FallingNotesRenderer {
 
   setShowTracks(showTracks: boolean): void {
     this.showTracks = showTracks;
+  }
+
+  setScoreMode(scoreMode: boolean): void {
+    this.scoreMode = scoreMode;
+  }
+
+  setMarks(marks: readonly string[]): void {
+    this.marks = marks;
   }
 
   setLanes(lanes: Map<number, KeyLane>): void {
@@ -261,7 +271,7 @@ export class FallingNotesRenderer {
         if (note.endMs <= timeMs) continue;
         const lane = this.lanes.get(note.midi);
         if (!lane || lane.black !== blackPass) continue;
-        this.paintNote(ctx, note, lane, timeMs);
+        this.paintNote(ctx, note, lane, timeMs, this.marks[i] ?? 'pending');
       }
     }
   }
@@ -288,15 +298,18 @@ export class FallingNotesRenderer {
     ctx.fillStyle = wash;
     ctx.fillRect(left, y, width, 10);
 
-    ctx.strokeStyle = 'rgba(255, 176, 74, 0.95)';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = this.scoreMode ? 'rgba(255, 220, 140, 1)' : 'rgba(255, 176, 74, 0.95)';
+    ctx.lineWidth = this.scoreMode ? 4 : 3;
+    ctx.shadowColor = this.scoreMode ? 'rgba(255, 170, 60, 0.9)' : 'transparent';
+    ctx.shadowBlur = this.scoreMode ? 14 : 0;
     ctx.beginPath();
     ctx.moveTo(left, this.height - 1.5);
     ctx.lineTo(left + width, this.height - 1.5);
     ctx.stroke();
+    ctx.shadowBlur = 0;
   }
 
-  private paintNote(ctx: CanvasRenderingContext2D, note: DrawableNote, lane: KeyLane, timeMs: number): void {
+  private paintNote(ctx: CanvasRenderingContext2D, note: DrawableNote, lane: KeyLane, timeMs: number, mark: string): void {
     const rect = noteRect(note, timeMs, this.height, lane);
     if (rect.height < 0.5 || rect.y > this.height || rect.y + rect.height < 0) return;
 
@@ -314,6 +327,7 @@ export class FallingNotesRenderer {
     const radius = Math.min(7, w / 2, h / 2);
 
     ctx.save();
+    if (mark === 'miss') ctx.globalAlpha = 0.28;
     ctx.beginPath();
     ctx.roundRect(x, y, w, h, [radius, radius, 1, 1]);
     ctx.clip();
@@ -323,9 +337,9 @@ export class FallingNotesRenderer {
       body.addColorStop(0, style.deep);
       body.addColorStop(1, style.fill);
       ctx.fillStyle = body;
-      ctx.globalAlpha = active ? 0.92 : 0.78;
+      ctx.globalAlpha = mark === 'miss' ? 0.3 : (active ? 0.92 : 0.78);
       ctx.fillRect(x, y, w, headTop - y);
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = mark === 'miss' ? 0.3 : 1;
     }
 
     ctx.fillStyle = active ? style.top : style.head;
@@ -338,8 +352,12 @@ export class FallingNotesRenderer {
 
     ctx.beginPath();
     ctx.roundRect(x, y, w, h, [radius, radius, 1, 1]);
-    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-    ctx.lineWidth = 1.25;
+    ctx.strokeStyle = mark === 'perfect' ? 'rgba(255, 236, 170, 0.95)'
+      : mark === 'great' ? 'rgba(170, 255, 205, 0.95)'
+      : mark === 'good' ? 'rgba(170, 214, 255, 0.95)'
+      : mark === 'miss' ? 'rgba(255, 120, 120, 0.7)'
+      : 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = mark === 'pending' ? 1.25 : 2;
     ctx.stroke();
 
     if (active) {

@@ -5,6 +5,8 @@ import { Toolbar } from '@openng/optimus-ui/toolbar';
 import { Note } from '@tonejs/midi/dist/Note';
 import { PianoService } from '../shared/services/piano-service';
 import { LyricLine } from '../shared/models/lyric-line';
+import { GameHudComponent } from '../game/game-hud.component';
+import { GameService } from '../game/game.service';
 import { FallingNotesRenderer, KeyLane } from './falling-notes-renderer';
 
 @Component({
@@ -12,7 +14,7 @@ import { FallingNotesRenderer, KeyLane } from './falling-notes-renderer';
   templateUrl: './notes-display.component.html',
   styleUrl: './notes-display.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Toolbar, Button, Tag],
+  imports: [Toolbar, Button, Tag, GameHudComponent],
 })
 export class NotesDisplayComponent {
 
@@ -32,6 +34,7 @@ export class NotesDisplayComponent {
 
   constructor(
     readonly piano: PianoService,
+    private readonly game: GameService,
     destroyRef: DestroyRef,
   ) {
     effect(() => {
@@ -96,6 +99,10 @@ export class NotesDisplayComponent {
     }
 
     const time = this.piano.curTime();
+    const scoring = this.game.mode() === 'score';
+    this.renderer.setScoreMode(scoring);
+    this.renderer.setMarks(this.game.marks());
+    if (scoring) this.game.sync(time);
     if (this.dirty || time !== this.lastDrawnTime) {
       this.renderer.draw(time);
       this.lastDrawnTime = time;

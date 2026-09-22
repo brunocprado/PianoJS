@@ -1,0 +1,59 @@
+@if (game.mode() === 'score') {
+  <div class="game-hud">
+    @if (game.phase() === 'playing') {
+      <div class="game-score">
+        <span class="game-kicker">Pontos</span>
+        <strong>{{ formatScore(game.state().score) }}</strong>
+        <span class="game-progress">{{ game.state().resolved }}/{{ game.state().total }}</span>
+      </div>
+
+      <div class="game-multiplier" [class.is-hot]="game.state().multiplier > 1">
+        <span>×{{ game.state().multiplier }}</span>
+        <div class="game-pips" aria-hidden="true">
+          @for (on of pips(); track $index) {
+            <i [class.on]="on"></i>
+          }
+        </div>
+      </div>
+    }
+
+    @if (countdown(); as count) {
+      <div class="game-countdown">{{ count }}</div>
+    } @else if (game.phase() === 'playing' && game.state().combo > 1) {
+      <div class="game-combo">
+        <strong>{{ game.state().combo }}</strong>
+        <span>combo</span>
+      </div>
+    }
+
+    @if (game.phase() === 'idle') {
+      <div class="game-hint">
+        <strong>Modo pontuação</strong>
+        <span>Abra um MIDI e toque cada nota quando ela cruzar a linha.</span>
+        <span>A cada 10 acertos o multiplicador sobe, até ×4.</span>
+      </div>
+    }
+
+    @if (game.phase() === 'unplayable') {
+      <div class="game-hint">
+        <strong>Nada para tocar</strong>
+        <span>Essa música não tem notas dentro do teclado atual. Ajuste o alcance nas configurações.</span>
+      </div>
+    }
+
+    @if (game.phase() === 'results') {
+      <div class="game-results">
+        <span [class]="'game-grade is-' + game.state().grade">{{ game.state().grade }}</span>
+        <strong class="game-results-score">{{ formatScore(game.state().score) }}</strong>
+        <p>{{ formatAccuracy(game.state().accuracy) }} de precisão · combo {{ game.state().maxCombo }}</p>
+        <ul>
+          <li class="is-perfect"><b>{{ game.state().counts.perfect }}</b> Perfeito</li>
+          <li class="is-great"><b>{{ game.state().counts.great }}</b> Ótimo</li>
+          <li class="is-good"><b>{{ game.state().counts.good }}</b> Bom</li>
+          <li class="is-miss"><b>{{ game.state().counts.miss }}</b> Errou</li>
+        </ul>
+        <p-button label="Jogar novamente" icon="pi pi-refresh" (onClick)="replay()" />
+      </div>
+    }
+  </div>
+}

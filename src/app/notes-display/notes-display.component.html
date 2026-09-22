@@ -1,5 +1,6 @@
 <div class="display-root" #root>
   <canvas #canvas class="notes-canvas" aria-hidden="true"></canvas>
+  <app-game-hud />
 
   @if (currentLyric()) {
     <div class="lyrics-chip">{{ currentLyric() }}</div>

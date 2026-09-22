@@ -8,10 +8,12 @@ import { Toolbar } from '@openng/optimus-ui/toolbar';
 import { JZZ } from 'jzz';
 
 import { Midi } from '@tonejs/midi';
+import { Note } from '@tonejs/midi/dist/Note';
 import { NotesDisplayComponent } from './notes-display/notes-display.component';
 import { KeyboardComponent } from './keyboard/keyboard.component';
 import { SettingsDialogComponent } from './settings/settings.component';
 import { LyricLine } from './shared/models/lyric-line';
+import { GameService, PlayMode } from './game/game.service';
 
 @Component({
     selector: 'app-root',
@@ -34,7 +36,13 @@ export class AppComponent implements OnInit {
 
   readonly showSettings = signal(false);
 
-  constructor(readonly piano: PianoService) {}
+  private loadedNotes: Note[] | null = null;
+  private loadedLyrics: LyricLine[] = [];
+
+  constructor(
+    readonly piano: PianoService,
+    readonly game: GameService,
+  ) {}
 
   ngOnInit(): void {
     JZZ().or('Cannot start MIDI engine!!!').and('MIDI engine is running!!!');
@@ -61,6 +69,15 @@ export class AppComponent implements OnInit {
 
   onSettingsApplied(): void {
     this.showSettings.set(false);
+  }
+
+  setMode(mode: PlayMode): void {
+    if (this.game.mode() === mode) return;
+    this.game.setMode(mode);
+    if (mode === 'score' && this.loadedNotes?.length) {
+      this.notesDisplay()?.loadNotes(this.loadedNotes, this.loadedLyrics);
+      this.game.start(this.loadedNotes);
+    }
   }
 
   triggerMidiUpload(): void {
@@ -104,8 +121,11 @@ export class AppComponent implements OnInit {
       }))
       .sort((a, b) => a.time - b.time);
 
-    this.piano.playMidi(notes);
+    this.loadedNotes = notes;
+    this.loadedLyrics = lyrics;
     this.notesDisplay()?.loadNotes(notes, lyrics);
+    if (this.game.mode() === 'score') this.game.start(notes);
+    else void this.piano.playMidi(notes);
     input.value = '';
   }
 }

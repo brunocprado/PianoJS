@@ -108,6 +108,198 @@
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
   }
 
+  .mode-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .game-hud {
+    position: absolute;
+    inset: 0;
+    z-index: 12;
+    pointer-events: none;
+  }
+
+  .game-score,
+  .game-combo,
+  .game-multiplier,
+  .game-hint,
+  .game-results {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.46);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+  }
+
+  .game-score {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    display: grid;
+    min-width: 7.5rem;
+    padding: 0.7rem 0.9rem 0.75rem;
+    border-radius: 1rem;
+  }
+
+  .game-score strong,
+  .game-results-score {
+    font-variant-numeric: tabular-nums;
+    font-size: 1.7rem;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  .game-kicker,
+  .game-progress,
+  .game-combo span,
+  .game-hint span,
+  .game-results p {
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.75rem;
+  }
+
+  .game-progress {
+    margin-top: 0.35rem;
+  }
+
+  .game-multiplier {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: grid;
+    justify-items: end;
+    gap: 0.45rem;
+    padding: 0.65rem 0.8rem;
+    border-radius: 1rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 800;
+    font-size: 1.35rem;
+  }
+
+  .game-multiplier.is-hot {
+    color: #ffe08a;
+    border-color: rgba(255, 208, 102, 0.45);
+  }
+
+  .game-pips {
+    display: flex;
+    gap: 0.22rem;
+  }
+
+  .game-pips i {
+    display: block;
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  .game-pips i.on {
+    background: #ffe08a;
+    box-shadow: 0 0 8px rgba(255, 208, 102, 0.8);
+  }
+
+  .game-combo {
+    position: absolute;
+    left: 1rem;
+    bottom: 1rem;
+    display: grid;
+    min-width: 5.5rem;
+    padding: 0.65rem 0.85rem 0.7rem;
+    border-radius: 1rem;
+  }
+
+  .game-combo strong {
+    font-size: 1.7rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .game-countdown {
+    position: absolute;
+    top: 34%;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    font-size: 7rem;
+    font-weight: 800;
+    line-height: 1;
+    text-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  }
+
+  .game-hint {
+    position: absolute;
+    left: 50%;
+    bottom: 1.25rem;
+    display: grid;
+    gap: 0.3rem;
+    width: min(36rem, calc(100% - 2rem));
+    transform: translateX(-50%);
+    padding: 0.9rem 1.1rem;
+    border-radius: 1rem;
+    text-align: center;
+  }
+
+  .game-results {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: grid;
+    justify-items: center;
+    gap: 0.35rem;
+    width: min(26rem, calc(100% - 2rem));
+    padding: 1.3rem 1.3rem 1.15rem;
+    border-radius: 1.25rem;
+    transform: translate(-50%, -54%);
+    text-align: center;
+    pointer-events: auto;
+  }
+
+  .game-grade {
+    font-size: 4.5rem;
+    font-weight: 800;
+    line-height: 0.9;
+  }
+
+  .game-grade.is-S,
+  .game-grade.is-A { color: #ffe08a; }
+  .game-grade.is-B { color: #8dffa8; }
+  .game-grade.is-C { color: #8ec8ff; }
+  .game-grade.is-D,
+  .game-grade.is-F { color: #ff8d8d; }
+
+  .game-results ul {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem 1rem;
+    width: 100%;
+    margin: 0.55rem 0 0.85rem;
+    padding: 0;
+    list-style: none;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.92rem;
+  }
+
+  .game-results li {
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .game-results li b {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .game-results .is-perfect b { color: #ffe08a; }
+  .game-results .is-great b { color: #8dffa8; }
+  .game-results .is-good b { color: #8ec8ff; }
+  .game-results .is-miss b { color: #ff8d8d; }
+
   .lyrics-chip {
     @apply absolute bottom-5 left-1/2 z-10 max-w-[min(92%,760px)] -translate-x-1/2 rounded-2xl border border-white/12 px-5 py-3.5 text-center text-[15px] font-semibold leading-relaxed text-white/92;
     background: rgba(0, 0, 0, 0.42);

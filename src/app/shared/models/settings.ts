@@ -20,8 +20,10 @@ export class Settings {
   }
 
   static fromOctaves(minOctave: number, octaveCount: number, useSamples: boolean, showTracks: boolean = true): Settings {
-    const minNote = (minOctave + 1) * 12;
-    const maxNote = minNote + octaveCount * 12 - 1;
+    const start = Number(minOctave);
+    const count = Number(octaveCount);
+    const minNote = (start + 1) * 12;
+    const maxNote = minNote + count * 12 - 1;
     return new Settings(minNote, maxNote, useSamples, showTracks);
   }
 }

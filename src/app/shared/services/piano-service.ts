@@ -3,6 +3,11 @@ import { Midi } from "@tonejs/midi";
 import { Note } from "@tonejs/midi/dist/Note";
 import { Settings } from "../models/settings";
 import { SynthPiano } from "./synth-piano";
+import {
+    playbackRateForPitch,
+    resolveNearestSampleMidi,
+    sampleNameCandidates,
+} from "./sample-resolve";
 
 enum NoteEvent { DOWN = 144, UP = 128 }
 const SUSTAIN_CONTROLLER = 64;
@@ -49,6 +54,9 @@ export class PianoService {
     private recordingStartTime = 0;
     private recordedNotes: RecordedNote[] = [];
     private activeRecordingNotes = new Map<number, { startTime: number; velocity: number }>();
+    private playbackGeneration = 0;
+    private suppressScore = false;
+    private readonly noteOnListeners = new Set<(midi: number, timeMs: number) => void>();
 
     private get minOctave(): number {
         return this.settings().minOctave;
@@ -88,19 +96,88 @@ export class PianoService {
         if (!this.context) {
             this.context = new AudioContext();
         }
+        if (this.context.state === "suspended") void this.context.resume();
         this.pianoSamples = {};
         const settings = this.settings();
         if (!settings.useSamples) return;
 
         for (let i = settings.minNote; i <= settings.maxNote; i++) {
-            const response = await fetch(`/assets/sounds/med_${this.midiToNoteName(i).toLowerCase()}.wav`);
-            if (!response.ok) continue;
-            this.pianoSamples[i] = await this.context.decodeAudioData(await response.arrayBuffer());
+            for (const name of sampleNameCandidates(i)) {
+                try {
+                    const response = await fetch(`/assets/sounds/med_${name}.wav`);
+                    if (!response.ok) continue;
+                    this.pianoSamples[i] = await this.context.decodeAudioData(await response.arrayBuffer());
+                    break;
+                } catch {
+                    /* missing/corrupt sample — try alias or leave unloaded */
+                }
+            }
         }
+    }
+
+    /**
+     * Exact sample, or nearest loaded buffer pitch-shifted (±2 octaves).
+     * Sample packs often start at C2; without this, notes below C2 stay silent
+     * when samples are on and the exact file is missing.
+     */
+    private resolveSample(pitch: number): { buffer: AudioBuffer; playbackRate: number } | null {
+        const exact = this.pianoSamples[pitch];
+        if (exact) return { buffer: exact, playbackRate: 1 };
+
+        const nearest = resolveNearestSampleMidi(
+            pitch,
+            Object.keys(this.pianoSamples).map(Number),
+        );
+        if (nearest === null) return null;
+        return {
+            buffer: this.pianoSamples[nearest],
+            playbackRate: playbackRateForPitch(pitch, nearest),
+        };
     }
 
     applySettings(settings: Settings) {
         this.settings.set(settings);
+    }
+
+    onNoteOn(listener: (midi: number, timeMs: number) => void): () => void {
+        this.noteOnListeners.add(listener);
+        return () => this.noteOnListeners.delete(listener);
+    }
+
+    stopPlayback(): void {
+        this.playbackGeneration++;
+        this.playing.set(false);
+    }
+
+    /** Advances the song clock without sounding the chart. Resolves false when cancelled. */
+    async runClock(endMs: number, leadInMs: number): Promise<boolean> {
+        const generation = ++this.playbackGeneration;
+        this.curTime.set(-leadInMs);
+        this.playing.set(true);
+
+        while (generation === this.playbackGeneration && this.curTime() < endMs) {
+            if (!this.playing()) {
+                await this.wait(100);
+                continue;
+            }
+            await this.wait(WAIT_TIME);
+            if (generation !== this.playbackGeneration || !this.playing()) continue;
+            this.curTime.update(time => time + WAIT_TIME);
+        }
+
+        if (generation !== this.playbackGeneration) return false;
+        this.playing.set(false);
+        return true;
+    }
+
+    private wait(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    private emitNoteOn(midi: number): void {
+        if (this.suppressScore) return;
+        const timeMs = this.curTime();
+        for (const listener of this.noteOnListeners) listener(midi, timeMs);
     }
 
     startRecording() {
@@ -192,6 +269,7 @@ export class PianoService {
         if (pitch < settings.minNote || pitch > settings.maxNote) return;
 
         this.recordMidiEvent(event, pitch, velocity);
+        if (event === NoteEvent.DOWN) this.emitNoteOn(pitch);
 
         if (event === NoteEvent.UP && this.sustainPedal()) {
             this.sustainedNotes.add(pitch);
@@ -199,7 +277,8 @@ export class PianoService {
             return;
         }
 
-        if (!settings.useSamples || !this.pianoSamples[pitch]) {
+        const sample = settings.useSamples ? this.resolveSample(pitch) : null;
+        if (!sample) {
             this.playSynthNote(event, pitch, velocity);
             return;
         }
@@ -207,10 +286,10 @@ export class PianoService {
         if (event === NoteEvent.DOWN && this.DEBUG) console.log(this.printNote([event, pitch, velocity]));
         if (event === NoteEvent.DOWN) {
             this.incKey(pitch);
+            if (this.context.state === "suspended") void this.context.resume();
             const source = this.context.createBufferSource();
-            source.loopStart = 0.05;
-            source.loopEnd = 0.15;
-            source.buffer = this.pianoSamples[pitch];
+            source.buffer = sample.buffer;
+            source.playbackRate.value = sample.playbackRate;
             source.connect(this.context.destination);
             source.start();
             (this.activeSounds[pitch] ??= []).push(source);
@@ -236,7 +315,7 @@ export class PianoService {
         const settings = this.settings();
         for (const midi of this.sustainedNotes) {
             if ((this.keyCounts[midi] ?? 0) === 0) {
-                if (!settings.useSamples || !this.pianoSamples[midi]) {
+                if (!settings.useSamples || !this.resolveSample(midi)) {
                     this.stopOscillatorSound(midi);
                 } else {
                     this.stopSampleSound(midi);
@@ -327,33 +406,53 @@ export class PianoService {
     }
 
     public async playMidi(notes: Note[]) {
+        const generation = ++this.playbackGeneration;
         this.curTime.set(0);
         this.playing.set(true);
 
-        const settings = this.settings();
         const sorted = [...notes].sort((a, b) => a.time - b.time);
         for (let i = 0; i < sorted.length; i++) {
+            if (generation !== this.playbackGeneration) return;
             const note = sorted[i];
             if (!note?.time && note?.time !== 0) continue;
-            if (note.midi < settings.minNote || note.midi > settings.maxNote) continue;
 
-            while (!this.playing()) {
-                await new Promise(r => setTimeout(r, 100));
+            // Read settings live so expanding to C1 mid-song (or before reload) takes effect.
+            const { minNote, maxNote } = this.settings();
+            if (note.midi < minNote || note.midi > maxNote) continue;
+
+            while (generation === this.playbackGeneration && !this.playing()) {
+                await this.wait(100);
             }
+            if (generation !== this.playbackGeneration) return;
+
             while (this.curTime() < note.time * 1000) {
-                await new Promise(r => setTimeout(r, WAIT_TIME));
+                if (generation !== this.playbackGeneration) return;
+                await this.wait(WAIT_TIME);
+                if (generation !== this.playbackGeneration) return;
                 this.curTime.update(t => t + WAIT_TIME);
             }
             await this.playNoteFromMidi(note);
-            if (i === sorted.length - 1) this.playing.set(false);
+            if (generation === this.playbackGeneration && i === sorted.length - 1) {
+                this.playing.set(false);
+            }
         }
     }
 
     private async playNoteFromMidi(note: Note) {
         const vel = Math.max(1, Math.min(127, Math.round((note.velocity ?? 0.8) * 127)));
-        this.processNote([NoteEvent.DOWN, note.midi, vel]);
+        this.suppressScore = true;
+        try {
+            this.processNote([NoteEvent.DOWN, note.midi, vel]);
+        } finally {
+            this.suppressScore = false;
+        }
         setTimeout(() => {
-            this.processNote([NoteEvent.UP, note.midi, 0]);
+            this.suppressScore = true;
+            try {
+                this.processNote([NoteEvent.UP, note.midi, 0]);
+            } finally {
+                this.suppressScore = false;
+            }
         }, note.duration * 1000);
     }
 }
